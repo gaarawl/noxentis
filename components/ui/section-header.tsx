@@ -12,7 +12,10 @@ export function SectionHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div
+      className="animate-premium-in flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+      style={{ ["--enter-delay" as string]: "90ms" }}
+    >
       <div className="space-y-2">
         {eyebrow ? (
           <p className="text-xs uppercase tracking-[0.28em] text-white/35">{eyebrow}</p>

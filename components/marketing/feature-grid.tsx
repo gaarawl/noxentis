@@ -8,8 +8,12 @@ export function FeatureGrid({
 }) {
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      {items.map((item) => (
-        <Card key={item.title}>
+      {items.map((item, index) => (
+        <Card
+          key={item.title}
+          className="animate-premium-in"
+          style={{ ["--enter-delay" as string]: `${220 + index * 90}ms` }}
+        >
           <CardContent className="space-y-4 p-6">
             <Badge variant="outline">{item.eyebrow}</Badge>
             <div className="space-y-3">

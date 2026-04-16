@@ -2,13 +2,16 @@ import type { ReactNode } from "react";
 
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
 import { LogoMark } from "@/components/shell/logo-mark";
+import { Button } from "@/components/ui/button";
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="container-app flex items-center justify-between py-6">
+      <header
+        className="container-app animate-premium-in flex items-center justify-between py-6"
+        style={{ ["--enter-delay" as string]: "40ms" }}
+      >
         <Link href="/">
           <LogoMark />
         </Link>
@@ -22,8 +25,11 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
       {children}
-      <footer className="container-app py-10 text-sm text-white/38">
-        Noxentis. Facturation électronique française, enfin simple et premium.
+      <footer
+        className="container-app animate-premium-fade py-10 text-sm text-white/38"
+        style={{ ["--enter-delay" as string]: "320ms" }}
+      >
+        Noxentis. Facturation electronique francaise, enfin simple et premium.
       </footer>
     </div>
   );

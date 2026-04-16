@@ -8,15 +8,23 @@ import type { PricingPlan } from "@/lib/domain/models";
 export function PricingGrid({ plans }: { plans: PricingPlan[] }) {
   return (
     <div className="grid gap-6 xl:grid-cols-3">
-      {plans.map((plan) => (
+      {plans.map((plan, index) => (
         <Card
           key={plan.name}
-          className={plan.highlight ? "border-white/14 bg-[linear-gradient(180deg,rgba(26,28,32,0.98),rgba(8,9,11,0.96))]" : undefined}
+          className={[
+            "animate-premium-in",
+            plan.highlight
+              ? "border-white/14 bg-[linear-gradient(180deg,rgba(26,28,32,0.98),rgba(8,9,11,0.96))]"
+              : ""
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          style={{ ["--enter-delay" as string]: `${220 + index * 100}ms` }}
         >
           <CardHeader className="space-y-4">
             <div className="flex items-center justify-between">
               <Badge variant={plan.highlight ? "success" : "outline"}>
-                {plan.highlight ? "Recommandé" : plan.name}
+                {plan.highlight ? "Recommande" : plan.name}
               </Badge>
             </div>
             <div className="space-y-2">

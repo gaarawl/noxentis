@@ -56,9 +56,10 @@ export function AppShell({
       <div className="relative mx-auto flex min-h-screen max-w-[1600px] gap-6 px-4 py-4 lg:px-6">
         <aside
           className={cn(
-            "sticky top-4 hidden h-[calc(100vh-2rem)] flex-col rounded-[30px] border border-white/8 bg-black/40 px-4 py-5 shadow-panel backdrop-blur-2xl lg:flex",
+            "animate-premium-in sticky top-4 hidden h-[calc(100vh-2rem)] flex-col rounded-[30px] border border-white/8 bg-black/40 px-4 py-5 shadow-panel backdrop-blur-2xl lg:flex",
             sidebarCollapsed ? "w-[96px]" : "w-[288px]"
           )}
+          style={{ ["--enter-delay" as string]: "40ms" }}
         >
           <div className="mb-8 flex items-center justify-between">
             <div className={cn(sidebarCollapsed && "hidden")}>
@@ -114,7 +115,10 @@ export function AppShell({
         </aside>
 
         <div className="flex min-h-screen flex-1 flex-col gap-6">
-          <header className="sticky top-4 z-20 flex items-center justify-between rounded-[30px] border border-white/8 bg-black/45 px-6 py-4 backdrop-blur-2xl">
+          <header
+            className="animate-premium-in sticky top-4 z-20 flex items-center justify-between rounded-[30px] border border-white/8 bg-black/45 px-6 py-4 backdrop-blur-2xl"
+            style={{ ["--enter-delay" as string]: "90ms" }}
+          >
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-[0.24em] text-white/35">Cockpit premium</p>
               <h2 className="text-xl font-semibold tracking-[-0.03em] text-white">
@@ -153,7 +157,13 @@ export function AppShell({
             </div>
           </header>
 
-          <main className="pb-8">{children}</main>
+          <main
+            key={pathname}
+            className="animate-premium-in pb-8"
+            style={{ ["--enter-delay" as string]: "140ms" }}
+          >
+            {children}
+          </main>
         </div>
       </div>
     </div>
