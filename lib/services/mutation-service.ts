@@ -15,6 +15,7 @@ import {
 import { normalizeEmail } from "@/lib/password";
 import { getPrisma } from "@/lib/prisma";
 import { isLiveMode } from "@/lib/runtime";
+import { sendReminderEmail } from "@/lib/services/email-service";
 import { requireCurrentSession } from "@/lib/services/auth-service";
 import { createSession } from "@/lib/session";
 
@@ -112,6 +113,26 @@ function readImportedValue(record: Map<string, string>, aliases: readonly string
   }
 
   return "";
+}
+
+function mapJsonAddress(value: Prisma.JsonValue | null | undefined) {
+  if (!value || Array.isArray(value) || typeof value !== "object") {
+    return {
+      line1: "",
+      city: "",
+      postalCode: "",
+      country: "France"
+    };
+  }
+
+  return {
+    line1: "line1" in value && typeof value.line1 === "string" ? value.line1 : "",
+    line2: "line2" in value && typeof value.line2 === "string" ? value.line2 : undefined,
+    city: "city" in value && typeof value.city === "string" ? value.city : "",
+    postalCode:
+      "postalCode" in value && typeof value.postalCode === "string" ? value.postalCode : "",
+    country: "country" in value && typeof value.country === "string" ? value.country : "France"
+  };
 }
 
 async function requireLiveContext() {
@@ -668,11 +689,10 @@ export async function createInvoiceReminder(payload: unknown) {
       id: parsed.data.invoiceId,
       companyId: company.id
     },
-    select: {
-      id: true,
-      number: true,
-      status: true,
-      remainingAmount: true
+    include: {
+      customer: true,
+      company: true,
+      lines: true
     }
   });
 
@@ -698,17 +718,129 @@ export async function createInvoiceReminder(payload: unknown) {
   }
 
   const scheduledAt = new Date(parsed.data.scheduledAt);
-  const sentAt = parsed.data.mode === "SEND" ? new Date() : null;
   const reminder = await prisma.reminder.create({
     data: {
       invoiceId: invoice.id,
       type: parsed.data.type,
       scheduledAt,
-      sentAt,
-      status: parsed.data.mode === "SEND" ? "SENT" : "SCHEDULED",
+      sentAt: null,
+      status: "SCHEDULED",
       subject: parsed.data.subject?.trim() || getReminderSubject(invoice.number, parsed.data.type)
     }
   });
+
+  let deliveryMode: "preview" | "sent" | null = null;
+  if (parsed.data.mode === "SEND") {
+    try {
+      const sentAt = new Date();
+      const delivery = await sendReminderEmail({
+        company: {
+          id: invoice.company.id,
+          ownerId: invoice.company.ownerId,
+          legalName: invoice.company.legalName,
+          brandName: invoice.company.brandName,
+          siren: invoice.company.siren,
+          vatNumber: invoice.company.vatNumber || "",
+          address: invoice.company.address,
+          city: invoice.company.city,
+          postalCode: invoice.company.postalCode,
+          country: invoice.company.country,
+          paymentTerms: invoice.company.paymentTerms,
+          logoUrl: invoice.company.logoUrl || undefined,
+          email: invoice.company.email || "",
+          phone: invoice.company.phone || "",
+          activityLabel: invoice.company.activityLabel || "",
+          tvaOnDebits: invoice.company.tvaOnDebits,
+          createdAt: invoice.company.createdAt.toISOString(),
+          updatedAt: invoice.company.updatedAt.toISOString()
+        },
+        customer: {
+          id: invoice.customer.id,
+          companyId: invoice.customer.companyId,
+          type: invoice.customer.type,
+          legalName: invoice.customer.legalName,
+          contactName: invoice.customer.contactName,
+          email: invoice.customer.email,
+          phone: invoice.customer.phone || "",
+          siren: invoice.customer.siren || undefined,
+          vatNumber: invoice.customer.vatNumber || undefined,
+          billingAddress: mapJsonAddress(invoice.customer.billingAddress),
+          deliveryAddress: invoice.customer.deliveryAddress
+            ? mapJsonAddress(invoice.customer.deliveryAddress)
+            : undefined,
+          notes: invoice.customer.notes || "",
+          tags: invoice.customer.tags,
+          status: invoice.customer.status,
+          createdAt: invoice.customer.createdAt.toISOString(),
+          updatedAt: invoice.customer.updatedAt.toISOString()
+        },
+        invoice: {
+          id: invoice.id,
+          companyId: invoice.companyId,
+          customerId: invoice.customerId,
+          quoteId: invoice.quoteId || undefined,
+          number: invoice.number,
+          type: invoice.type,
+          status: invoice.status,
+          issueDate: invoice.issueDate.toISOString(),
+          dueDate: invoice.dueDate.toISOString(),
+          subtotal: Number(invoice.subtotal),
+          taxAmount: Number(invoice.taxAmount),
+          total: Number(invoice.total),
+          paidAmount: Number(invoice.paidAmount),
+          remainingAmount: Number(invoice.remainingAmount),
+          complianceStatus: invoice.complianceStatus,
+          transmissionStatus: invoice.transmissionStatus,
+          pdpStatus: invoice.pdpStatus,
+          operationType: invoice.operationType,
+          deliveryAddressNote: invoice.deliveryAddressNote || undefined,
+          notes: invoice.notes || "",
+          lines: invoice.lines.map((line) => ({
+            id: line.id,
+            label: line.label,
+            description: line.description || undefined,
+            quantity: Number(line.quantity),
+            unitPrice: Number(line.unitPrice),
+            taxRate: Number(line.taxRate),
+            discount: line.discount ? Number(line.discount) : 0,
+            total: Number(line.total)
+          })),
+          createdAt: invoice.createdAt.toISOString(),
+          updatedAt: invoice.updatedAt.toISOString()
+        },
+        reminder: {
+          id: reminder.id,
+          invoiceId: reminder.invoiceId,
+          type: reminder.type,
+          scheduledAt: reminder.scheduledAt.toISOString(),
+          sentAt: sentAt.toISOString(),
+          status: "SENT",
+          subject: reminder.subject
+        }
+      });
+
+      deliveryMode = delivery.mode;
+      await prisma.reminder.update({
+        where: { id: reminder.id },
+        data: {
+          sentAt,
+          status: "SENT"
+        }
+      });
+    } catch {
+      await prisma.reminder.update({
+        where: { id: reminder.id },
+        data: {
+          status: "FAILED"
+        }
+      });
+
+      return {
+        ok: false as const,
+        message: "La relance a ete creee mais l'email n'a pas pu etre envoye."
+      };
+    }
+  }
 
   return {
     ok: true as const,
@@ -716,10 +848,11 @@ export async function createInvoiceReminder(payload: unknown) {
       id: reminder.id,
       invoiceId: invoice.id,
       invoiceNumber: invoice.number,
-      status: reminder.status,
+      status: parsed.data.mode === "SEND" ? "SENT" : reminder.status,
       type: reminder.type,
       scheduledAt: reminder.scheduledAt.toISOString(),
-      sentAt: reminder.sentAt?.toISOString()
+      sentAt: parsed.data.mode === "SEND" ? new Date().toISOString() : undefined,
+      mode: deliveryMode
     }
   };
 }

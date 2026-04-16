@@ -176,13 +176,15 @@ export function ReminderComposer({ invoices }: { invoices: RemindableInvoiceRow[
                 const payload = (await response.json()) as {
                   ok: boolean;
                   message?: string;
-                  data?: { invoiceNumber?: string; status?: string };
+                  data?: { invoiceNumber?: string; status?: string; mode?: "preview" | "sent" | null };
                 };
 
                 setMessage(
                   payload.ok
                     ? mode === "SEND"
-                      ? `Relance envoyee pour ${payload.data?.invoiceNumber || "la facture"}.`
+                      ? payload.data?.mode === "preview"
+                        ? `Relance preparee en preview pour ${payload.data?.invoiceNumber || "la facture"}.`
+                        : `Relance envoyee pour ${payload.data?.invoiceNumber || "la facture"}.`
                       : `Relance programmee pour ${payload.data?.invoiceNumber || "la facture"}.`
                     : payload.message || "Relance impossible."
                 );

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ConvertQuoteButton } from "@/components/documents/convert-quote-button";
+import { DocumentPdfLink } from "@/components/documents/document-pdf-link";
 import { DocumentEditor } from "@/components/documents/document-editor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ export default async function QuotesPage() {
                   <TableHead>Emission</TableHead>
                   <TableHead>Expiration</TableHead>
                   <TableHead>Total</TableHead>
+                  <TableHead>PDF</TableHead>
                   <TableHead>Conversion</TableHead>
                 </TableRow>
               </TableHeader>
@@ -71,6 +73,9 @@ export default async function QuotesPage() {
                     <TableCell>{formatDate(quote.issueDate)}</TableCell>
                     <TableCell>{formatDate(quote.expiryDate)}</TableCell>
                     <TableCell>{formatCurrency(quote.total)}</TableCell>
+                    <TableCell>
+                      <DocumentPdfLink kind="quote" documentId={quote.id} />
+                    </TableCell>
                     <TableCell>
                       {quote.convertedInvoiceNumber ? (
                         <div className="space-y-2">

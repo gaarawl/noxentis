@@ -45,8 +45,18 @@ export function SendReminderButton({
                 })
               });
 
-              const payload = (await response.json()) as { ok: boolean; message?: string };
-              setMessage(payload.ok ? "Relance envoyee." : payload.message || "Relance impossible.");
+              const payload = (await response.json()) as {
+                ok: boolean;
+                message?: string;
+                data?: { mode?: "preview" | "sent" | null };
+              };
+              setMessage(
+                payload.ok
+                  ? payload.data?.mode === "preview"
+                    ? "Relance envoyee en mode preview."
+                    : "Relance envoyee."
+                  : payload.message || "Relance impossible."
+              );
 
               if (payload.ok) {
                 router.refresh();

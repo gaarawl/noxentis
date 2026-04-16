@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { DocumentPdfLink } from "@/components/documents/document-pdf-link";
 import { DocumentEditor } from "@/components/documents/document-editor";
+import { SendInvoiceButton } from "@/components/documents/send-invoice-button";
 import { PayInvoiceButton } from "@/components/payments/pay-invoice-button";
 import { SendReminderButton } from "@/components/reminders/send-reminder-button";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +74,7 @@ export default async function InvoicesPage() {
                   <TableHead>Statut</TableHead>
                   <TableHead>Echeance</TableHead>
                   <TableHead>Reste</TableHead>
+                  <TableHead>PDF</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -114,6 +117,11 @@ export default async function InvoicesPage() {
                     <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                     <TableCell>{formatCurrency(invoice.remainingAmount)}</TableCell>
                     <TableCell>
+                      <DocumentPdfLink kind="invoice" documentId={invoice.id} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col items-end gap-2">
+                        <SendInvoiceButton invoiceId={invoice.id} />
                       {invoice.remainingAmount > 0 ? (
                         <div className="flex flex-col items-end gap-2">
                           <PayInvoiceButton invoiceId={invoice.id} amount={invoice.remainingAmount} />
@@ -125,6 +133,7 @@ export default async function InvoicesPage() {
                       ) : (
                         <Badge variant="success">Reglee</Badge>
                       )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
