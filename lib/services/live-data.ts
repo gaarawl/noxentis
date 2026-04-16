@@ -5,6 +5,7 @@ import type { Prisma } from "@prisma/client";
 import { getPrisma } from "@/lib/prisma";
 import { isLiveMode } from "@/lib/runtime";
 import { getCurrentSession } from "@/lib/services/auth-service";
+import { buildComplianceCheck } from "@/lib/services/compliance-engine";
 import {
   demoActivity,
   demoCompany,
@@ -213,14 +214,19 @@ function mapPdpConnection(connection: LiveCompanyRecord["pdpConnections"][number
   };
 }
 
-function mapCompliance(
+function mapStoredCompliance(
   companyId: string,
   check?: LiveCompanyRecord["compliance"][number]
 ): ComplianceCheck {
   if (!check) {
     return {
-      ...demoComplianceCheck,
-      companyId
+      id: `computed-${companyId}`,
+      companyId,
+      score: 0,
+      status: "NOT_READY",
+      missingFields: [],
+      warnings: [],
+      checkedAt: new Date().toISOString()
     };
   }
 
@@ -322,29 +328,52 @@ function buildActivity(
 }
 
 function buildRevenueChart(invoices: Invoice[], payments: Payment[]): ChartPoint[] {
-  if (invoices.length === 0) {
-    return demoRevenueChart;
-  }
-
   const formatter = new Intl.DateTimeFormat("fr-FR", { month: "short" });
-  const months = new Map<string, ChartPoint>();
+  const today = new Date();
+  const months = Array.from({ length: 4 }, (_, index) => {
+    const date = new Date(today.getFullYear(), today.getMonth() - (3 - index), 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+    return {
+      key,
+      month: formatter.format(date),
+      revenue: 0,
+      cashIn: 0,
+      overdue: 0
+    };
+  });
+
+  const monthMap = new Map(
+    months.map((item) => [
+      item.key,
+      { month: item.month, revenue: item.revenue, cashIn: item.cashIn, overdue: item.overdue }
+    ])
+  );
 
   for (const invoice of invoices) {
-    const key = formatter.format(new Date(invoice.issueDate));
-    const current = months.get(key) || { month: key, revenue: 0, cashIn: 0, overdue: 0 };
+    const date = new Date(invoice.issueDate);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const current = monthMap.get(key);
+    if (!current) {
+      continue;
+    }
+
     current.revenue += invoice.total;
     current.overdue += invoice.status === "OVERDUE" ? invoice.remainingAmount : 0;
-    months.set(key, current);
   }
 
   for (const payment of payments) {
-    const key = formatter.format(new Date(payment.paidAt));
-    const current = months.get(key) || { month: key, revenue: 0, cashIn: 0, overdue: 0 };
+    const date = new Date(payment.paidAt);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const current = monthMap.get(key);
+    if (!current) {
+      continue;
+    }
+
     current.cashIn += payment.amount;
-    months.set(key, current);
   }
 
-  return Array.from(months.values()).slice(-6);
+  return months.map((item) => monthMap.get(item.key) || item);
 }
 
 export const getLiveDataset = cache(async (companyId: string, ownerId: string) => {
@@ -390,7 +419,14 @@ export const getLiveDataset = cache(async (companyId: string, ownerId: string) =
   const payments = company.invoices.flatMap((invoice) => invoice.payments.map(mapPayment));
   const reminders = company.invoices.flatMap((invoice) => invoice.reminders.map(mapReminder));
   const pdpConnections = company.pdpConnections.map(mapPdpConnection);
-  const complianceCheck = mapCompliance(company.id, company.compliance[0]);
+  const storedComplianceCheck = mapStoredCompliance(company.id, company.compliance[0]);
+  const complianceCheck = buildComplianceCheck({
+    company: mappedCompany,
+    customers,
+    invoices,
+    pdpConnections,
+    baseCheck: storedComplianceCheck
+  });
   const activity = buildActivity(quotes, invoices, payments, reminders, complianceCheck);
   const revenueChart = buildRevenueChart(invoices, payments);
 

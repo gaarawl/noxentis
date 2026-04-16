@@ -212,6 +212,7 @@ export interface DashboardKpi {
   hint: string;
   delta: string;
   tone?: "default" | "success" | "warning";
+  deltaMode?: "trend" | "text";
 }
 
 export interface ChartPoint {

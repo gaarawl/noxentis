@@ -103,9 +103,9 @@ export function AppShell({
           <div className={cn("space-y-3", sidebarCollapsed && "hidden")}>
             <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.22em] text-white/35">Conformite</p>
-              <p className="mt-2 text-lg font-semibold text-white">Pret a 84 %</p>
+              <p className="mt-2 text-lg font-semibold text-white">Diagnostic actif</p>
               <p className="mt-1 text-sm text-white/55">
-                Votre cockpit est presque pret pour la bascule.
+                Mentions, PDP et transmission sont suivis en temps reel.
               </p>
             </div>
           </div>

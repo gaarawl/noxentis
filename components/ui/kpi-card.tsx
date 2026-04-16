@@ -7,6 +7,9 @@ import type { DashboardKpi } from "@/lib/domain/models";
 export function KpiCard({ item }: { item: DashboardKpi }) {
   const variant =
     item.tone === "success" ? "success" : item.tone === "warning" ? "warning" : "default";
+  const showTrendIcon =
+    item.deltaMode === "trend" ||
+    (!item.deltaMode && (item.delta.includes("%") || item.delta.startsWith("+") || item.delta.startsWith("-")));
 
   return (
     <Card>
@@ -14,7 +17,7 @@ export function KpiCard({ item }: { item: DashboardKpi }) {
         <div className="flex items-center justify-between">
           <p className="text-sm text-white/50">{item.label}</p>
           <Badge variant={variant}>
-            <ArrowUpRight className="mr-1 h-3.5 w-3.5" />
+            {showTrendIcon ? <ArrowUpRight className="mr-1 h-3.5 w-3.5" /> : null}
             {item.delta}
           </Badge>
         </div>
