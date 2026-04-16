@@ -119,3 +119,7 @@ export const reminderSchema = z.object({
   scheduledAt: z.string().min(1, "La date de relance est requise."),
   subject: z.string().max(140).optional().or(z.literal(""))
 });
+
+export const billingPlanSchema = z.object({
+  plan: z.enum(["SOLO", "PRO", "BUSINESS"])
+});

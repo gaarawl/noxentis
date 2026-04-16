@@ -96,6 +96,20 @@ enum OperationType {
   MIXED
 }
 
+enum BillingPlan {
+  SOLO
+  PRO
+  BUSINESS
+}
+
+enum BillingStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  INCOMPLETE
+  CANCELED
+}
+
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -134,6 +148,7 @@ model Company {
   creditNotes    CreditNote[]
   pdpConnections PdpConnection[]
   compliance     ComplianceCheck[]
+  subscription   BillingSubscription?
 }
 
 model Customer {
@@ -290,4 +305,22 @@ model ComplianceCheck {
   warnings      Json
   checkedAt     DateTime            @default(now())
   company       Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model BillingSubscription {
+  id                    String        @id @default(cuid())
+  companyId             String        @unique
+  plan                  BillingPlan   @default(PRO)
+  status                BillingStatus @default(TRIALING)
+  stripeCustomerId      String?       @unique
+  stripeSubscriptionId  String?       @unique
+  stripePriceId         String?
+  stripeCheckoutSessionId String?
+  trialEndsAt           DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean       @default(false)
+  seats                 Int           @default(1)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  company               Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }

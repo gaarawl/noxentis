@@ -23,6 +23,7 @@ export type TransmissionStatus =
   | "REJECTED";
 export type ComplianceReadiness = "NOT_READY" | "PARTIALLY_READY" | "READY";
 export type PlanTier = "SOLO" | "PRO" | "BUSINESS";
+export type BillingStatus = "TRIALING" | "ACTIVE" | "PAST_DUE" | "INCOMPLETE" | "CANCELED";
 
 export interface Address {
   line1: string;
@@ -198,6 +199,23 @@ export interface ComplianceCheck {
   checkedAt: string;
 }
 
+export interface BillingSubscription {
+  id: string;
+  companyId: string;
+  plan: PlanTier;
+  status: BillingStatus;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  stripePriceId?: string;
+  stripeCheckoutSessionId?: string;
+  trialEndsAt?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd: boolean;
+  seats: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ActivityItem {
   id: string;
   title: string;
@@ -246,6 +264,21 @@ export interface PricingPlan {
   description: string;
   highlight?: boolean;
   features: string[];
+}
+
+export interface BillingOverview {
+  mode: "preview" | "stripe";
+  subscription: BillingSubscription;
+  pricingPlans: PricingPlan[];
+  activePlan: PlanTier;
+  statusLabel: string;
+  nextInvoiceAmount: string;
+  trialEndsAtLabel: string;
+  currentPeriodEndLabel: string;
+  seatsLabel: string;
+  trialDaysRemaining: number;
+  canManagePortal: boolean;
+  supportModeLabel: string;
 }
 
 export interface PdpProvider {

@@ -26,6 +26,7 @@ async function main() {
   await prisma.customer.deleteMany();
   await prisma.complianceCheck.deleteMany();
   await prisma.pdpConnection.deleteMany();
+  await prisma.billingSubscription.deleteMany();
   await prisma.company.deleteMany();
   await prisma.user.deleteMany();
 
@@ -55,6 +56,20 @@ async function main() {
       phone: demoCompany.phone,
       activityLabel: demoCompany.activityLabel,
       tvaOnDebits: demoCompany.tvaOnDebits
+    }
+  });
+
+  const trialEndsAt = new Date();
+  trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+
+  await prisma.billingSubscription.create({
+    data: {
+      companyId: company.id,
+      plan: "PRO",
+      status: "TRIALING",
+      trialEndsAt,
+      currentPeriodEnd: trialEndsAt,
+      seats: 5
     }
   });
 

@@ -40,6 +40,7 @@ import type {
 type LiveCompanyRecord = Prisma.CompanyGetPayload<{
   include: {
     owner: true;
+    subscription: true;
     customers: true;
     quotes: { include: { lines: true } };
     invoices: {
@@ -250,7 +251,7 @@ function buildSession(company: LiveCompanyRecord): SessionUser {
     lastName: company.owner.lastName,
     companyName: company.brandName,
     role: company.owner.role,
-    plan: "PRO"
+    plan: company.subscription?.plan || "PRO"
   };
 }
 
@@ -396,6 +397,7 @@ export const getLiveDataset = cache(async (companyId: string, ownerId: string) =
     },
     include: {
       owner: true,
+      subscription: true,
       customers: { orderBy: { createdAt: "asc" } },
       quotes: {
         orderBy: { createdAt: "desc" },
@@ -505,7 +507,8 @@ export async function getCompanyContext() {
       ownerId: session.userId
     },
     include: {
-      owner: true
+      owner: true,
+      subscription: true
     }
   });
 }

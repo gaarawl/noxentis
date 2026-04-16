@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { billingPlanCatalog, TRIAL_LENGTH_DAYS } from "@/lib/config/billing";
 import { demoSession } from "@/lib/data/demo-data";
 import type { SessionUser } from "@/lib/domain/models";
 import { forgotPasswordSchema, loginSchema, registerSchema } from "@/lib/domain/validators";
@@ -15,6 +16,12 @@ export class AuthenticationError extends Error {
     super(message);
     this.name = "AuthenticationError";
   }
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
 }
 
 function parseWithMessage<T extends z.ZodTypeAny>(schema: T, payload: unknown) {
@@ -40,6 +47,9 @@ function toSessionUser(input: {
   company: {
     id: string;
     brandName: string;
+    subscription?: {
+      plan: SessionUser["plan"];
+    } | null;
   };
 }): SessionUser {
   return {
@@ -50,7 +60,7 @@ function toSessionUser(input: {
     lastName: input.user.lastName,
     companyName: input.company.brandName,
     role: input.user.role,
-    plan: "PRO"
+    plan: input.company.subscription?.plan || "PRO"
   };
 }
 
@@ -74,6 +84,9 @@ export async function signIn(payload: unknown): Promise<AuthResult> {
     where: { email },
     include: {
       companies: {
+        include: {
+          subscription: true
+        },
         orderBy: { createdAt: "asc" },
         take: 1
       }
@@ -140,6 +153,7 @@ export async function registerAccount(payload: unknown): Promise<AuthResult> {
   const passwordHash = hashPassword(parsed.data.password);
 
   const result = await prisma.$transaction(async (tx) => {
+    const trialEndsAt = addDays(new Date(), TRIAL_LENGTH_DAYS);
     const user = await tx.user.create({
       data: {
         email,
@@ -169,7 +183,18 @@ export async function registerAccount(payload: unknown): Promise<AuthResult> {
       }
     });
 
-    return { user, company };
+    const subscription = await tx.billingSubscription.create({
+      data: {
+        companyId: company.id,
+        plan: "PRO",
+        status: "TRIALING",
+        trialEndsAt,
+        currentPeriodEnd: trialEndsAt,
+        seats: billingPlanCatalog.PRO.includedSeats
+      }
+    });
+
+    return { user, company: { ...company, subscription } };
   });
 
   await createSession(

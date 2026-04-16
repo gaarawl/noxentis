@@ -18,7 +18,7 @@ export default async function PlatformLayout({ children }: { children: ReactNode
   const pdpConnected = data?.pdpConnections.some((item) => item.status === "CONNECTED") || false;
 
   return (
-    <AppShell user={session} pdpConnected={pdpConnected}>
+    <AppShell user={data?.session || session} pdpConnected={pdpConnected}>
       {children}
     </AppShell>
   );
