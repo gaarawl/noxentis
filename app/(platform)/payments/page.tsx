@@ -1,4 +1,6 @@
+import { PaymentRecorder } from "@/components/payments/payment-recorder";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
 import {
   Table,
@@ -9,47 +11,100 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { formatCurrency, formatDate } from "@/lib/domain/calculations";
-import { listPayments } from "@/lib/services/payment-service";
+import { listPayments, listReceivableInvoices } from "@/lib/services/payment-service";
+
+function paymentMethodLabel(method: "TRANSFER" | "CARD" | "SEPA" | "CASH") {
+  switch (method) {
+    case "TRANSFER":
+      return "Virement";
+    case "CARD":
+      return "Carte";
+    case "SEPA":
+      return "SEPA";
+    case "CASH":
+      return "Especes";
+    default:
+      return method;
+  }
+}
 
 export default async function PaymentsPage() {
-  const payments = await listPayments();
+  const [payments, receivableInvoices] = await Promise.all([
+    listPayments(),
+    listReceivableInvoices()
+  ]);
+
   const collected = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const pending = receivableInvoices.reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
 
   return (
     <div className="space-y-8">
       <SectionHeader
         eyebrow="Paiements"
         title="Encaissements suivis proprement"
-        description="Références, méthodes, dates de paiement et lecture immédiate des montants collectés."
+        description="Enregistrez vos reglements, gerez les paiements partiels et mettez a jour le solde des factures en temps reel."
       />
 
-      <div className="grid gap-6 xl:grid-cols-[0.8fr,1.2fr]">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <Card>
-          <CardHeader>
-            <CardTitle>Résumé</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-              <p className="text-sm text-white/45">Encaissements suivis</p>
-              <p className="mt-2 text-3xl font-semibold text-white">{formatCurrency(collected)}</p>
-            </div>
-            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-white/58">
-              Le bouton "marquer payé" et les paiements partiels peuvent être branchés à la couche Prisma et aux webhooks bancaires ou Stripe.
-            </div>
+          <CardContent className="p-6">
+            <p className="text-sm text-white/45">Encaissements cumules</p>
+            <p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(collected)}</p>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader>
-            <CardTitle>Timeline de paiement</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
+            <p className="text-sm text-white/45">Solde a encaisser</p>
+            <p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(pending)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-sm text-white/45">Factures ouvertes</p>
+            <p className="mt-3 text-3xl font-semibold text-white">{receivableInvoices.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-sm text-white/45">Paiements journalises</p>
+            <p className="mt-3 text-3xl font-semibold text-white">{payments.length}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Enregistrer un reglement</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {receivableInvoices.length === 0 ? (
+            <EmptyState
+              title="Aucune facture en attente"
+              description="Des qu'une facture aura un solde restant, vous pourrez enregistrer ici un paiement partiel ou complet."
+            />
+          ) : (
+            <PaymentRecorder invoices={receivableInvoices} />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Timeline de paiement</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-hidden">
+          {payments.length === 0 ? (
+            <EmptyState
+              title="Aucun paiement enregistre"
+              description="Vos encaissements apparaitront ici avec leur date, la reference et la methode de reglement."
+            />
+          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Facture</TableHead>
                   <TableHead>Client</TableHead>
-                  <TableHead>Méthode</TableHead>
+                  <TableHead>Methode</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Montant</TableHead>
                 </TableRow>
@@ -59,16 +114,16 @@ export default async function PaymentsPage() {
                   <TableRow key={payment.id}>
                     <TableCell>{payment.invoiceNumber}</TableCell>
                     <TableCell>{payment.customerName}</TableCell>
-                    <TableCell>{payment.method}</TableCell>
+                    <TableCell>{paymentMethodLabel(payment.method)}</TableCell>
                     <TableCell>{formatDate(payment.paidAt)}</TableCell>
                     <TableCell>{formatCurrency(payment.amount)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

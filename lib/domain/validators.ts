@@ -51,7 +51,6 @@ export const accountSchema = z.object({
   firstName: z.string().min(2),
   lastName: z.string().min(2),
   email: z.string().email(),
-  role: z.enum(["OWNER", "ADMIN", "MEMBER"]),
   notifications: z.boolean()
 });
 
@@ -103,4 +102,12 @@ export const invoiceEditorSchema = z.object({
   operationType: z.enum(["SERVICE", "PRODUCT", "MIXED"]),
   notes: z.string().max(400),
   lines: z.array(documentLineSchema).min(1)
+});
+
+export const paymentSchema = z.object({
+  invoiceId: z.string().min(1, "Selectionnez une facture."),
+  amount: z.number().positive("Le montant doit etre superieur a zero."),
+  method: z.enum(["TRANSFER", "CARD", "SEPA", "CASH"]),
+  paidAt: z.string().min(1, "La date de paiement est requise."),
+  reference: z.string().max(80).optional().or(z.literal(""))
 });

@@ -10,7 +10,6 @@ import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import type { SessionUser } from "@/lib/domain/models";
 import { accountSchema } from "@/lib/domain/validators";
 
@@ -26,7 +25,6 @@ export function AccountForm({ user }: { user: SessionUser }) {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      role: user.role,
       notifications: true
     }
   });
@@ -62,14 +60,6 @@ export function AccountForm({ user }: { user: SessionUser }) {
       <div className="space-y-2">
         <Label>Email</Label>
         <Input {...register("email")} />
-      </div>
-      <div className="space-y-2">
-        <Label>Role</Label>
-        <Select {...register("role")}>
-          <option value="OWNER">Owner</option>
-          <option value="ADMIN">Admin</option>
-          <option value="MEMBER">Member</option>
-        </Select>
       </div>
       <div className="md:col-span-2 flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
         <label className="flex items-center gap-3 text-sm text-white/72">

@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { addDays } from "date-fns";
 
 import { calculateDocumentTotals } from "@/lib/domain/calculations";
 import {
@@ -7,6 +8,7 @@ import {
   customerImportSchema,
   customerSchema,
   invoiceEditorSchema,
+  paymentSchema,
   quoteEditorSchema
 } from "@/lib/domain/validators";
 import { normalizeEmail } from "@/lib/password";
@@ -158,6 +160,31 @@ function toLineCreateInput(
   };
 }
 
+function resolvePaymentTermsDays(paymentTerms: string) {
+  const match = paymentTerms.match(/(\d{1,3})/);
+  return match ? Number(match[1]) : 30;
+}
+
+async function getNextInvoiceNumber(prisma: ReturnType<typeof getPrisma>, companyId: string) {
+  const count = await prisma.invoice.count({
+    where: { companyId }
+  });
+
+  return `FAC-${new Date().getFullYear()}-${String(count + 1).padStart(3, "0")}`;
+}
+
+function getInvoiceStatusAfterPayment(dueDate: Date, remainingAmount: number, paidAmount: number) {
+  if (remainingAmount <= 0) {
+    return "PAID" as const;
+  }
+
+  if (paidAmount > 0) {
+    return "PARTIALLY_PAID" as const;
+  }
+
+  return dueDate.getTime() < Date.now() ? ("OVERDUE" as const) : ("ISSUED" as const);
+}
+
 export async function saveAccountProfile(payload: unknown) {
   const parsed = accountSchema.safeParse(payload);
   if (!parsed.success) {
@@ -174,8 +201,7 @@ export async function saveAccountProfile(payload: unknown) {
       ...session,
       email: normalizeEmail(parsed.data.email),
       firstName: parsed.data.firstName.trim(),
-      lastName: parsed.data.lastName.trim(),
-      role: parsed.data.role
+      lastName: parsed.data.lastName.trim()
     });
 
     return { ok: true as const };
@@ -209,8 +235,7 @@ export async function saveAccountProfile(payload: unknown) {
     data: {
       email: normalizedEmail,
       firstName: parsed.data.firstName.trim(),
-      lastName: parsed.data.lastName.trim(),
-      role: parsed.data.role
+      lastName: parsed.data.lastName.trim()
     }
   });
 
@@ -218,8 +243,7 @@ export async function saveAccountProfile(payload: unknown) {
     ...session,
     email: updatedUser.email,
     firstName: updatedUser.firstName,
-    lastName: updatedUser.lastName,
-    role: updatedUser.role
+    lastName: updatedUser.lastName
   });
 
   return { ok: true as const };
@@ -500,6 +524,220 @@ export async function createInvoiceRecord(payload: unknown) {
     include: {
       lines: true
     }
+  });
+
+  return { ok: true as const, data: invoice };
+}
+
+export async function recordInvoicePayment(payload: unknown) {
+  const parsed = paymentSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      message: parsed.error.issues[0]?.message || "Paiement invalide."
+    };
+  }
+
+  if (!isLiveMode()) {
+    return { ok: true as const, data: parsed.data };
+  }
+
+  const { prisma, company } = await requireLiveContext();
+  const invoice = await prisma.invoice.findFirst({
+    where: {
+      id: parsed.data.invoiceId,
+      companyId: company.id
+    },
+    select: {
+      id: true,
+      number: true,
+      total: true,
+      paidAmount: true,
+      remainingAmount: true,
+      dueDate: true,
+      status: true
+    }
+  });
+
+  if (!invoice) {
+    return {
+      ok: false as const,
+      message: "Facture introuvable."
+    };
+  }
+
+  if (invoice.status === "CANCELLED") {
+    return {
+      ok: false as const,
+      message: "Cette facture est annulee et ne peut pas recevoir de paiement."
+    };
+  }
+
+  const amount = Number(parsed.data.amount.toFixed(2));
+  const currentRemaining = Number(invoice.remainingAmount);
+
+  if (currentRemaining <= 0) {
+    return {
+      ok: false as const,
+      message: "Cette facture est deja entierement reglee."
+    };
+  }
+
+  if (amount > currentRemaining) {
+    return {
+      ok: false as const,
+      message: `Le montant depasse le solde restant de ${currentRemaining.toFixed(2)} EUR.`
+    };
+  }
+
+  const nextPaidAmount = Number((Number(invoice.paidAmount) + amount).toFixed(2));
+  const nextRemainingAmount = Number(Math.max(0, currentRemaining - amount).toFixed(2));
+  const nextStatus = getInvoiceStatusAfterPayment(
+    invoice.dueDate,
+    nextRemainingAmount,
+    nextPaidAmount
+  );
+
+  const payment = await prisma.$transaction(async (tx) => {
+    const createdPayment = await tx.payment.create({
+      data: {
+        invoiceId: invoice.id,
+        amount,
+        method: parsed.data.method,
+        paidAt: new Date(parsed.data.paidAt),
+        reference: parsed.data.reference?.trim() || null
+      }
+    });
+
+    await tx.invoice.update({
+      where: {
+        id: invoice.id
+      },
+      data: {
+        paidAmount: nextPaidAmount,
+        remainingAmount: nextRemainingAmount,
+        status: nextStatus
+      }
+    });
+
+    return createdPayment;
+  });
+
+  return {
+    ok: true as const,
+    data: {
+      id: payment.id,
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.number,
+      amount,
+      remainingAmount: nextRemainingAmount,
+      status: nextStatus
+    }
+  };
+}
+
+export async function convertQuoteToInvoiceRecord(quoteId: string) {
+  if (!isLiveMode()) {
+    return {
+      ok: false as const,
+      message: "La conversion de devis en facture n'est disponible qu'en mode live."
+    };
+  }
+
+  const { prisma, company } = await requireLiveContext();
+  const quote = await prisma.quote.findFirst({
+    where: {
+      id: quoteId,
+      companyId: company.id
+    },
+    include: {
+      customer: true,
+      lines: true,
+      invoices: {
+        orderBy: { createdAt: "desc" },
+        take: 1
+      }
+    }
+  });
+
+  if (!quote) {
+    return {
+      ok: false as const,
+      message: "Devis introuvable."
+    };
+  }
+
+  if (quote.invoices[0]) {
+    return {
+      ok: false as const,
+      message: `Ce devis a deja ete converti en ${quote.invoices[0].number}.`
+    };
+  }
+
+  if (quote.status === "DECLINED" || quote.status === "EXPIRED") {
+    return {
+      ok: false as const,
+      message: "Ce devis ne peut pas etre converti dans son statut actuel."
+    };
+  }
+
+  const invoiceNumber = await getNextInvoiceNumber(prisma, company.id);
+  const issueDate = new Date();
+  const dueDate = addDays(issueDate, resolvePaymentTermsDays(company.paymentTerms));
+  const pdpConnected = Boolean(
+    await prisma.pdpConnection.findFirst({
+      where: {
+        companyId: company.id,
+        status: "CONNECTED"
+      },
+      select: { id: true }
+    })
+  );
+
+  const invoice = await prisma.$transaction(async (tx) => {
+    await tx.quote.update({
+      where: { id: quote.id },
+      data: {
+        status: quote.status === "DRAFT" ? "APPROVED" : quote.status
+      }
+    });
+
+    return tx.invoice.create({
+      data: {
+        companyId: company.id,
+        customerId: quote.customerId,
+        quoteId: quote.id,
+        number: invoiceNumber,
+        type: "STANDARD",
+        status: "ISSUED",
+        issueDate,
+        dueDate,
+        subtotal: quote.subtotal,
+        taxAmount: quote.taxAmount,
+        total: quote.total,
+        paidAmount: 0,
+        remainingAmount: quote.total,
+        complianceStatus: "PARTIALLY_READY",
+        transmissionStatus: pdpConnected ? "READY" : "NOT_READY",
+        pdpStatus: pdpConnected ? "CONNECTED" : "NOT_CONNECTED",
+        operationType: "SERVICE",
+        notes: quote.notes,
+        lines: {
+          create: quote.lines.map((line) => ({
+            label: line.label,
+            description: line.description,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            taxRate: line.taxRate,
+            discount: line.discount,
+            total: line.total
+          }))
+        }
+      },
+      include: {
+        lines: true
+      }
+    });
   });
 
   return { ok: true as const, data: invoice };

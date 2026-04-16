@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { DocumentEditor } from "@/components/documents/document-editor";
+import { PayInvoiceButton } from "@/components/payments/pay-invoice-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +54,7 @@ export default async function InvoicesPage() {
                   <TableHead>Statut</TableHead>
                   <TableHead>Echeance</TableHead>
                   <TableHead>Reste</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -93,6 +95,13 @@ export default async function InvoicesPage() {
                     </TableCell>
                     <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                     <TableCell>{formatCurrency(invoice.remainingAmount)}</TableCell>
+                    <TableCell>
+                      {invoice.remainingAmount > 0 ? (
+                        <PayInvoiceButton invoiceId={invoice.id} amount={invoice.remainingAmount} />
+                      ) : (
+                        <Badge variant="success">Reglee</Badge>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

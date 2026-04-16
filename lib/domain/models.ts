@@ -261,6 +261,17 @@ export interface InvoiceTableRow extends Invoice {
   sourceQuoteNumber?: string;
 }
 
+export interface ReceivableInvoiceRow {
+  id: string;
+  number: string;
+  customerName: string;
+  dueDate: string;
+  total: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: InvoiceStatus;
+}
+
 export interface QuoteTableRow extends Quote {
   customerName: string;
   convertedInvoiceNumber?: string;

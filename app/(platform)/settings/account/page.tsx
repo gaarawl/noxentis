@@ -14,12 +14,12 @@ export default async function AccountSettingsPage() {
     <div className="space-y-8">
       <SectionHeader
         eyebrow="Compte"
-        title="Préférences utilisateur"
-        description="Profil, notifications, rôle et organisation du compte principal."
+        title="Preferences utilisateur"
+        description="Profil, email de connexion et alertes du compte principal."
       />
       <Card>
         <CardHeader>
-        <CardTitle>Compte principal</CardTitle>
+          <CardTitle>Compte principal</CardTitle>
         </CardHeader>
         <CardContent>
           <AccountForm user={user} />
