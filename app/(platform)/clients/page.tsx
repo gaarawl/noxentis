@@ -16,8 +16,8 @@ import {
 import { formatCurrency } from "@/lib/domain/calculations";
 import { listCustomers } from "@/lib/services/customer-service";
 
-export default function ClientsPage() {
-  const customers = listCustomers();
+export default async function ClientsPage() {
+  const customers = await listCustomers();
 
   return (
     <div className="space-y-8">

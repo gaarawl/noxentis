@@ -1,9 +1,11 @@
 import { CompanyProfileForm } from "@/components/forms/company-profile-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
-import { demoCompany } from "@/lib/data/demo-data";
+import { getCompanyProfile } from "@/lib/services/company-service";
 
-export default function CompanySettingsPage() {
+export default async function CompanySettingsPage() {
+  const company = await getCompanyProfile();
+
   return (
     <div className="space-y-8">
       <SectionHeader
@@ -13,10 +15,10 @@ export default function CompanySettingsPage() {
       />
       <Card>
         <CardHeader>
-          <CardTitle>Profil société</CardTitle>
+        <CardTitle>Profil société</CardTitle>
         </CardHeader>
         <CardContent>
-          <CompanyProfileForm company={demoCompany} />
+          <CompanyProfileForm company={company} />
         </CardContent>
       </Card>
     </div>

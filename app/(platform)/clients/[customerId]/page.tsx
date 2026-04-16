@@ -12,13 +12,13 @@ export default async function CustomerDetailPage({
   params: Promise<{ customerId: string }>;
 }) {
   const { customerId } = await params;
-  const customer = getCustomerById(customerId);
+  const customer = await getCustomerById(customerId);
 
   if (!customer) {
     notFound();
   }
 
-  const history = getCustomerHistory(customerId);
+  const history = await getCustomerHistory(customerId);
 
   return (
     <div className="space-y-8">

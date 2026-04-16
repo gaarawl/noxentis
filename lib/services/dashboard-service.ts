@@ -1,19 +1,13 @@
-import {
-  demoActivity,
-  demoComplianceCheck,
-  demoInvoices,
-  demoQuotes,
-  demoReminders,
-  demoRevenueChart
-} from "@/lib/data/demo-data";
 import { formatCurrency, formatPercent } from "@/lib/domain/calculations";
 import type { DashboardSnapshot } from "@/lib/domain/models";
+import { getDataSource } from "@/lib/services/live-data";
 
-export function getDashboardSnapshot(): DashboardSnapshot {
-  const revenueMonth = demoInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
-  const cashIn = demoInvoices.reduce((sum, invoice) => sum + invoice.paidAmount, 0);
-  const pending = demoInvoices.reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
-  const conversionRate = Math.round((1 / demoQuotes.length) * 100);
+export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
+  const data = await getDataSource();
+  const revenueMonth = data.invoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const cashIn = data.invoices.reduce((sum, invoice) => sum + invoice.paidAmount, 0);
+  const pending = data.invoices.reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
+  const conversionRate = Math.round((1 / Math.max(data.quotes.length, 1)) * 100);
 
   return {
     kpis: [
@@ -34,20 +28,20 @@ export function getDashboardSnapshot(): DashboardSnapshot {
         label: "En attente",
         value: formatCurrency(pending),
         hint: "Montants restant à encaisser",
-        delta: `${demoReminders.length} relances programmées`,
+        delta: `${data.reminders.length} relances programmées`,
         tone: "warning"
       },
       {
         label: "Préparation conformité",
-        value: `${demoComplianceCheck.score}/100`,
+        value: `${data.complianceCheck.score}/100`,
         hint: "Compte et données prêtes pour transmission",
-        delta: formatPercent(demoComplianceCheck.score)
+        delta: formatPercent(data.complianceCheck.score)
       }
     ],
-    chart: demoRevenueChart,
-    recentActivity: demoActivity,
+    chart: data.revenueChart,
+    recentActivity: data.activity,
     cashExpected: pending,
-    remindersToSend: demoReminders.filter((reminder) => reminder.status === "SCHEDULED").length,
+    remindersToSend: data.reminders.filter((reminder) => reminder.status === "SCHEDULED").length,
     conversionRate
   };
 }

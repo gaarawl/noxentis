@@ -11,8 +11,8 @@ import {
 import { formatCurrency, formatDate } from "@/lib/domain/calculations";
 import { listPayments } from "@/lib/services/payment-service";
 
-export default function PaymentsPage() {
-  const payments = listPayments();
+export default async function PaymentsPage() {
+  const payments = await listPayments();
   const collected = payments.reduce((sum, payment) => sum + payment.amount, 0);
 
   return (

@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getPdpOverview } from "@/lib/services/pdp-service";
 
-export default function PdpIntegrationsPage() {
-  const overview = getPdpOverview();
+export default async function PdpIntegrationsPage() {
+  const overview = await getPdpOverview();
 
   return (
     <div className="space-y-8">

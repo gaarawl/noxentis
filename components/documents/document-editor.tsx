@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 import type { z } from "zod";
@@ -32,7 +33,9 @@ type DocumentEditorProps =
     };
 
 export function DocumentEditor(props: DocumentEditorProps) {
-  const [saved, setSaved] = useState(false);
+  const router = useRouter();
+  const [saved, setSaved] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
   const schema = props.kind === "quote" ? quoteEditorSchema : invoiceEditorSchema;
   const form = useForm<QuoteValues | InvoiceValues>({
     resolver: zodResolver(schema),
@@ -48,7 +51,32 @@ export function DocumentEditor(props: DocumentEditorProps) {
   const totals = calculateDocumentTotals(lines);
 
   return (
-    <form className="grid gap-6 xl:grid-cols-[1.35fr,0.75fr]" onSubmit={handleSubmit(() => setSaved(true))}>
+    <form
+      className="grid gap-6 xl:grid-cols-[1.35fr,0.75fr]"
+      onSubmit={handleSubmit((values) => {
+        startTransition(async () => {
+          const endpoint = props.kind === "quote" ? "/api/quotes" : "/api/invoices";
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(values)
+          });
+
+          const payload = (await response.json()) as { ok: boolean; message?: string };
+          setSaved(
+            payload.ok
+              ? props.kind === "quote"
+                ? "Devis enregistré."
+                : "Facture enregistrée."
+              : payload.message || "Enregistrement impossible."
+          );
+
+          if (payload.ok) {
+            router.refresh();
+          }
+        });
+      })}
+    >
       <Card>
         <CardHeader>
           <CardTitle>
@@ -208,10 +236,10 @@ export function DocumentEditor(props: DocumentEditorProps) {
             <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-white/55">
               Le PDF visuel et le flux électronique structuré sont traités séparément dans Noxentis.
             </div>
-            <Button className="w-full" type="submit">
+            <Button className="w-full" type="submit" disabled={isPending}>
               {props.kind === "quote" ? "Enregistrer le devis" : "Enregistrer la facture"}
             </Button>
-            {saved ? <p className="text-sm text-emerald-300">Document enregistré en mode démo.</p> : null}
+            {saved ? <p className="text-sm text-emerald-300">{saved}</p> : null}
           </CardContent>
         </Card>
       </div>

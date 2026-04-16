@@ -1,10 +1,12 @@
-import { demoCustomers, demoInvoices, demoPayments, demoReminders } from "@/lib/data/demo-data";
 import type { PaymentTimelineRow, ReminderTimelineRow } from "@/lib/domain/models";
+import { getDataSource } from "@/lib/services/live-data";
 
-export function listPayments(): PaymentTimelineRow[] {
-  return demoPayments.map((payment) => {
-    const invoice = demoInvoices.find((item) => item.id === payment.invoiceId);
-    const customer = demoCustomers.find((item) => item.id === invoice?.customerId);
+export async function listPayments(): Promise<PaymentTimelineRow[]> {
+  const data = await getDataSource();
+
+  return data.payments.map((payment) => {
+    const invoice = data.invoices.find((item) => item.id === payment.invoiceId);
+    const customer = data.customers.find((item) => item.id === invoice?.customerId);
 
     return {
       ...payment,
@@ -14,10 +16,12 @@ export function listPayments(): PaymentTimelineRow[] {
   });
 }
 
-export function listReminders(): ReminderTimelineRow[] {
-  return demoReminders.map((reminder) => {
-    const invoice = demoInvoices.find((item) => item.id === reminder.invoiceId);
-    const customer = demoCustomers.find((item) => item.id === invoice?.customerId);
+export async function listReminders(): Promise<ReminderTimelineRow[]> {
+  const data = await getDataSource();
+
+  return data.reminders.map((reminder) => {
+    const invoice = data.invoices.find((item) => item.id === reminder.invoiceId);
+    const customer = data.customers.find((item) => item.id === invoice?.customerId);
 
     return {
       ...reminder,

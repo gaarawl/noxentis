@@ -1,37 +1,37 @@
-import {
-  demoCompany,
-  demoCreditNotes,
-  demoCustomers,
-  demoInvoices,
-  demoQuotes
-} from "@/lib/data/demo-data";
 import { calculateDocumentTotals } from "@/lib/domain/calculations";
 import type {
   DocumentLine,
   InvoiceTableRow,
   QuoteTableRow
 } from "@/lib/domain/models";
+import { getDataSource } from "@/lib/services/live-data";
 
-export function listQuotes(): QuoteTableRow[] {
-  return demoQuotes.map((quote) => ({
+export async function listQuotes(): Promise<QuoteTableRow[]> {
+  const data = await getDataSource();
+
+  return data.quotes.map((quote) => ({
     ...quote,
     customerName:
-      demoCustomers.find((customer) => customer.id === quote.customerId)?.legalName || "Client"
+      data.customers.find((customer) => customer.id === quote.customerId)?.legalName || "Client"
   }));
 }
 
-export function listInvoices(): InvoiceTableRow[] {
-  return demoInvoices.map((invoice) => ({
+export async function listInvoices(): Promise<InvoiceTableRow[]> {
+  const data = await getDataSource();
+
+  return data.invoices.map((invoice) => ({
     ...invoice,
     customerName:
-      demoCustomers.find((customer) => customer.id === invoice.customerId)?.legalName || "Client"
+      data.customers.find((customer) => customer.id === invoice.customerId)?.legalName || "Client"
   }));
 }
 
-export function listCreditNotes() {
-  return demoCreditNotes.map((creditNote) => {
-    const invoice = demoInvoices.find((item) => item.id === creditNote.invoiceId);
-    const customer = demoCustomers.find((item) => item.id === invoice?.customerId);
+export async function listCreditNotes() {
+  const data = await getDataSource();
+
+  return data.creditNotes.map((creditNote) => {
+    const invoice = data.invoices.find((item) => item.id === creditNote.invoiceId);
+    const customer = data.customers.find((item) => item.id === invoice?.customerId);
 
     return {
       ...creditNote,
@@ -41,8 +41,30 @@ export function listCreditNotes() {
   });
 }
 
-export function getDocumentComposerDefaults(kind: "quote" | "invoice") {
-  const customer = demoCustomers[0];
+export async function getDocumentComposerDefaults(kind: "quote" | "invoice") {
+  const data = await getDataSource();
+  const customer =
+    data.customers[0] ||
+    ({
+      id: "",
+      companyId: data.company.id,
+      type: "COMPANY",
+      status: "ONBOARDING",
+      legalName: "Créez d'abord un client",
+      contactName: "",
+      email: "",
+      phone: "",
+      billingAddress: {
+        line1: "",
+        city: "",
+        postalCode: "",
+        country: "France"
+      },
+      notes: "",
+      tags: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
   const baseLines: DocumentLine[] =
     kind === "quote"
       ? [
@@ -73,13 +95,13 @@ export function getDocumentComposerDefaults(kind: "quote" | "invoice") {
   const totals = calculateDocumentTotals(baseLines);
 
   return {
-    company: demoCompany,
+    company: data.company,
     customer,
     lines: baseLines,
     totals,
     number:
       kind === "quote"
-        ? `DEV-2026-0${demoQuotes.length + 50}`
-        : `FAC-2026-1${demoInvoices.length + 30}`
+        ? `DEV-2026-0${data.quotes.length + 50}`
+        : `FAC-2026-1${data.invoices.length + 30}`
   };
 }

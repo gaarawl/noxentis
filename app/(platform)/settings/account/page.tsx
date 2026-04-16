@@ -1,9 +1,15 @@
 import { AccountForm } from "@/components/forms/account-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
-import { demoSession } from "@/lib/data/demo-data";
+import { getCurrentSession } from "@/lib/services/auth-service";
 
-export default function AccountSettingsPage() {
+export default async function AccountSettingsPage() {
+  const user = await getCurrentSession();
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="space-y-8">
       <SectionHeader
@@ -13,10 +19,10 @@ export default function AccountSettingsPage() {
       />
       <Card>
         <CardHeader>
-          <CardTitle>Compte principal</CardTitle>
+        <CardTitle>Compte principal</CardTitle>
         </CardHeader>
         <CardContent>
-          <AccountForm user={demoSession} />
+          <AccountForm user={user} />
         </CardContent>
       </Card>
     </div>

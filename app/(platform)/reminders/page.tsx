@@ -12,8 +12,8 @@ import {
 import { formatCurrency, formatDate } from "@/lib/domain/calculations";
 import { listReminders } from "@/lib/services/payment-service";
 
-export default function RemindersPage() {
-  const reminders = listReminders();
+export default async function RemindersPage() {
+  const reminders = await listReminders();
 
   return (
     <div className="space-y-8">

@@ -6,6 +6,7 @@ import {
   loginSchema,
   registerSchema
 } from "@/lib/domain/validators";
+import { getDataSource } from "@/lib/services/live-data";
 
 export type AuthResult = { ok: true; redirectTo?: string } | { ok: false; message: string };
 
@@ -67,5 +68,11 @@ export async function logout() {
 }
 
 export async function getCurrentSession() {
-  return getSessionUser();
+  const session = await getSessionUser();
+  if (session) {
+    return session;
+  }
+
+  const data = await getDataSource();
+  return data.session;
 }

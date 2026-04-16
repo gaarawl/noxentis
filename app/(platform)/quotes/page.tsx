@@ -11,12 +11,15 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { formatCurrency, formatDate } from "@/lib/domain/calculations";
-import { demoCustomers } from "@/lib/data/demo-data";
+import { listCustomers } from "@/lib/services/customer-service";
 import { getDocumentComposerDefaults, listQuotes } from "@/lib/services/document-service";
 
-export default function QuotesPage() {
-  const quotes = listQuotes();
-  const defaults = getDocumentComposerDefaults("quote");
+export default async function QuotesPage() {
+  const [quotes, defaults, customers] = await Promise.all([
+    listQuotes(),
+    getDocumentComposerDefaults("quote"),
+    listCustomers()
+  ]);
 
   return (
     <div className="space-y-8">
@@ -65,7 +68,7 @@ export default function QuotesPage() {
 
       <DocumentEditor
         kind="quote"
-        customerOptions={demoCustomers.map((customer) => ({
+        customerOptions={customers.map((customer) => ({
           id: customer.id,
           label: customer.legalName
         }))}

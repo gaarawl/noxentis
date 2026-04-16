@@ -1,26 +1,22 @@
-import {
-  demoCompany,
-  demoComplianceCheck,
-  demoCustomers,
-  demoPdpConnections
-} from "@/lib/data/demo-data";
 import type { ComplianceOverview } from "@/lib/domain/models";
+import { getDataSource } from "@/lib/services/live-data";
 
-export function getComplianceOverview(): ComplianceOverview {
-  const customerWithoutSiren = demoCustomers.filter(
+export async function getComplianceOverview(): Promise<ComplianceOverview> {
+  const data = await getDataSource();
+  const customerWithoutSiren = data.customers.filter(
     (customer) => customer.type === "COMPANY" && !customer.siren
   );
 
   return {
-    readiness: demoComplianceCheck.status,
-    score: demoComplianceCheck.score,
+    readiness: data.complianceCheck.status,
+    score: data.complianceCheck.score,
     missingFields: [
-      ...demoComplianceCheck.missingFields,
+      ...data.complianceCheck.missingFields,
       ...(customerWithoutSiren.length > 0
         ? ["Un ou plusieurs clients entreprises sont sans SIREN."]
         : [])
     ],
-    warnings: demoComplianceCheck.warnings,
+    warnings: data.complianceCheck.warnings,
     nextSteps: [
       "Valider la connexion PDP partenaire active pour l'émission.",
       "Imposer la collecte du SIREN client sur tout nouveau compte entreprise.",
@@ -34,15 +30,16 @@ export function getComplianceOverview(): ComplianceOverview {
   };
 }
 
-export function getCompanyCompleteness() {
+export async function getCompanyCompleteness() {
+  const data = await getDataSource();
   return {
-    company: demoCompany,
-    pdpConnected: demoPdpConnections.some((item) => item.status === "CONNECTED"),
+    company: data.company,
+    pdpConnected: data.pdpConnections.some((item) => item.status === "CONNECTED"),
     requiredMentions: [
       { label: "SIREN client", ok: true },
       { label: "Adresse de livraison si différente", ok: true },
       { label: "Nature de l'opération", ok: true },
-      { label: "TVA d'après les débits", ok: demoCompany.tvaOnDebits }
+      { label: "TVA d'après les débits", ok: data.company.tvaOnDebits }
     ]
   };
 }

@@ -12,8 +12,8 @@ import {
 import { formatCurrency, formatDate } from "@/lib/domain/calculations";
 import { listCreditNotes } from "@/lib/services/document-service";
 
-export default function CreditNotesPage() {
-  const creditNotes = listCreditNotes();
+export default async function CreditNotesPage() {
+  const creditNotes = await listCreditNotes();
 
   return (
     <div className="space-y-8">

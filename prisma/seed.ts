@@ -53,6 +53,7 @@ async function main() {
       data: {
         companyId: company.id,
         type: customer.type,
+        status: customer.status,
         legalName: customer.legalName,
         contactName: customer.contactName,
         email: customer.email,

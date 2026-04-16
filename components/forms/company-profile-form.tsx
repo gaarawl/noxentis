@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
@@ -16,7 +17,9 @@ import type { Company } from "@/lib/domain/models";
 type Values = z.infer<typeof companyProfileSchema>;
 
 export function CompanyProfileForm({ company }: { company: Company }) {
-  const [saved, setSaved] = useState(false);
+  const router = useRouter();
+  const [saved, setSaved] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
   const { register, handleSubmit } = useForm<Values>({
     resolver: zodResolver(companyProfileSchema),
     defaultValues: {
@@ -39,7 +42,26 @@ export function CompanyProfileForm({ company }: { company: Company }) {
   return (
     <form
       className="grid gap-5 md:grid-cols-2"
-      onSubmit={handleSubmit(() => setSaved(true))}
+      onSubmit={handleSubmit((values) => {
+        startTransition(async () => {
+          const response = await fetch("/api/company", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(values)
+          });
+
+          const payload = (await response.json()) as { ok: boolean; message?: string };
+          setSaved(
+            payload.ok
+              ? "Préférences entreprise mises à jour."
+              : payload.message || "Impossible d'enregistrer la société."
+          );
+
+          if (payload.ok) {
+            router.refresh();
+          }
+        });
+      })}
     >
       <div className="space-y-2">
         <Label>Raison sociale</Label>
@@ -94,9 +116,11 @@ export function CompanyProfileForm({ company }: { company: Company }) {
           <input type="checkbox" className="h-4 w-4 rounded" {...register("tvaOnDebits")} />
           Option pour le paiement de la TVA d'après les débits
         </label>
-        <Button type="submit">Enregistrer</Button>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "Enregistrement..." : "Enregistrer"}
+        </Button>
       </div>
-      {saved ? <p className="md:col-span-2 text-sm text-emerald-300">Préférences entreprise mises à jour.</p> : null}
+      {saved ? <p className="md:col-span-2 text-sm text-emerald-300">{saved}</p> : null}
     </form>
   );
 }

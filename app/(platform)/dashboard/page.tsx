@@ -6,8 +6,8 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { formatCurrency, formatPercent } from "@/lib/domain/calculations";
 import { getDashboardSnapshot } from "@/lib/services/dashboard-service";
 
-export default function DashboardPage() {
-  const snapshot = getDashboardSnapshot();
+export default async function DashboardPage() {
+  const snapshot = await getDashboardSnapshot();
 
   return (
     <div className="space-y-8">

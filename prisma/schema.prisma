@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -16,6 +17,12 @@ enum UserRole {
 enum CustomerType {
   COMPANY
   INDIVIDUAL
+}
+
+enum CustomerStatus {
+  ACTIVE
+  ONBOARDING
+  WATCH
 }
 
 enum QuoteStatus {
@@ -133,6 +140,7 @@ model Customer {
   id              String       @id @default(cuid())
   companyId       String
   type            CustomerType
+  status          CustomerStatus @default(ACTIVE)
   legalName       String
   contactName     String
   email           String

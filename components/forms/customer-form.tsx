@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
@@ -16,7 +17,9 @@ import { customerSchema } from "@/lib/domain/validators";
 type Values = z.infer<typeof customerSchema>;
 
 export function CustomerForm() {
-  const [saved, setSaved] = useState(false);
+  const router = useRouter();
+  const [saved, setSaved] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
   const { register, handleSubmit } = useForm<Values>({
     resolver: zodResolver(customerSchema),
     defaultValues: {
@@ -36,7 +39,25 @@ export function CustomerForm() {
   });
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit(() => setSaved(true))}>
+    <form
+      className="space-y-4"
+      onSubmit={handleSubmit((values) => {
+        startTransition(async () => {
+          const response = await fetch("/api/customers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(values)
+          });
+
+          const payload = (await response.json()) as { ok: boolean; message?: string };
+          setSaved(payload.ok ? "Client enregistré." : payload.message || "Impossible d'ajouter ce client.");
+
+          if (payload.ok) {
+            router.refresh();
+          }
+        });
+      })}
+    >
       <div className="space-y-2">
         <Label>Type</Label>
         <Select {...register("type")}>
@@ -86,10 +107,10 @@ export function CustomerForm() {
         <Label>Notes internes</Label>
         <Textarea className="min-h-[96px]" {...register("notes")} />
       </div>
-      <Button className="w-full" type="submit">
-        Ajouter ce client
+      <Button className="w-full" type="submit" disabled={isPending}>
+        {isPending ? "Ajout..." : "Ajouter ce client"}
       </Button>
-      {saved ? <p className="text-sm text-emerald-300">Client ajouté en démo.</p> : null}
+      {saved ? <p className="text-sm text-emerald-300">{saved}</p> : null}
     </form>
   );
 }

@@ -1,8 +1,11 @@
-import { demoPdpConnections, pdpProviders } from "@/lib/data/demo-data";
+import { pdpProviders } from "@/lib/data/demo-data";
+import { getDataSource } from "@/lib/services/live-data";
 
-export function getPdpOverview() {
+export async function getPdpOverview() {
+  const data = await getDataSource();
+
   return {
-    currentConnections: demoPdpConnections,
+    currentConnections: data.pdpConnections,
     providers: pdpProviders,
     statusMapping: [
       { internal: "READY", partner: "payload_prepared" },

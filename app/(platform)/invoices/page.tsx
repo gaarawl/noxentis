@@ -11,12 +11,15 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { formatCurrency, formatDate } from "@/lib/domain/calculations";
-import { demoCustomers } from "@/lib/data/demo-data";
+import { listCustomers } from "@/lib/services/customer-service";
 import { getDocumentComposerDefaults, listInvoices } from "@/lib/services/document-service";
 
-export default function InvoicesPage() {
-  const invoices = listInvoices();
-  const defaults = getDocumentComposerDefaults("invoice");
+export default async function InvoicesPage() {
+  const [invoices, defaults, customers] = await Promise.all([
+    listInvoices(),
+    getDocumentComposerDefaults("invoice"),
+    listCustomers()
+  ]);
 
   return (
     <div className="space-y-8">
@@ -78,7 +81,7 @@ export default function InvoicesPage() {
 
       <DocumentEditor
         kind="invoice"
-        customerOptions={demoCustomers.map((customer) => ({
+        customerOptions={customers.map((customer) => ({
           id: customer.id,
           label: customer.legalName
         }))}

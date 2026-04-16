@@ -120,6 +120,7 @@ npm run dev
 Consulter [.env.example](./.env.example). Les principales variables :
 
 - `DATABASE_URL`
+- `DIRECT_URL`
 - `AUTH_SECRET`
 - `NEXT_PUBLIC_APP_URL`
 - `DEMO_MODE`

@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getCompanyCompleteness, getComplianceOverview } from "@/lib/services/compliance-service";
 
-export default function CompliancePage() {
-  const overview = getComplianceOverview();
-  const completeness = getCompanyCompleteness();
+export default async function CompliancePage() {
+  const [overview, completeness] = await Promise.all([
+    getComplianceOverview(),
+    getCompanyCompleteness()
+  ]);
 
   return (
     <div className="space-y-8">
