@@ -108,6 +108,49 @@ export default async function BillingPage({
         description="Pilotez vos plans Solo, Pro et Business avec un essai de 14 jours, une bascule Stripe propre et un fallback preview tant que la couche paiement n'est pas finalisee."
       />
 
+      {billing.mode === "preview" ? (
+        <Card className="border-white/12">
+          <CardContent className="flex flex-wrap items-start justify-between gap-4 pt-6">
+            <div className="max-w-4xl space-y-2">
+              <div className="flex items-center gap-3">
+                <Badge variant="warning">Stripe a brancher plus tard</Badge>
+                <span className="text-xs uppercase tracking-[0.2em] text-white/35">
+                  Setup pret
+                </span>
+              </div>
+              <p className="text-sm leading-7 text-white/64">
+                Vous pouvez continuer a utiliser tout le module abonnement sans compte Stripe.
+                Quand votre compte sera pret, il suffira d'ajouter
+                {" "}
+                <code className="rounded bg-white/[0.05] px-2 py-1 text-white/82">
+                  STRIPE_SECRET_KEY
+                </code>
+                ,
+                {" "}
+                <code className="rounded bg-white/[0.05] px-2 py-1 text-white/82">
+                  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+                </code>
+                ,
+                {" "}
+                <code className="rounded bg-white/[0.05] px-2 py-1 text-white/82">
+                  STRIPE_PRICE_SOLO_MONTHLY
+                </code>
+                ,
+                {" "}
+                <code className="rounded bg-white/[0.05] px-2 py-1 text-white/82">
+                  STRIPE_PRICE_PRO_MONTHLY
+                </code>
+                {" "}et{" "}
+                <code className="rounded bg-white/[0.05] px-2 py-1 text-white/82">
+                  STRIPE_PRICE_BUSINESS_MONTHLY
+                </code>
+                .
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {flash ? (
         <Card className="border-white/12">
           <CardContent className="flex items-start justify-between gap-4 pt-6">

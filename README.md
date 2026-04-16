@@ -125,9 +125,27 @@ Consulter [.env.example](./.env.example). Les principales variables :
 - `NEXT_PUBLIC_APP_URL`
 - `DEMO_MODE`
 - `STRIPE_SECRET_KEY`
+- `STRIPE_PRICE_SOLO_MONTHLY`
+- `STRIPE_PRICE_PRO_MONTHLY`
+- `STRIPE_PRICE_BUSINESS_MONTHLY`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `RESEND_API_KEY`
 - `SMTP_FROM`
+
+## Billing Stripe
+
+Le module abonnement fonctionne deja sans compte Stripe :
+
+- si les variables Stripe ne sont pas renseignees, Noxentis reste en `mode preview`
+- les plans, l'essai gratuit et la console billing restent utilisables sans blocage
+- quand votre compte Stripe sera pret, ajoutez simplement :
+  - `STRIPE_SECRET_KEY`
+  - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+  - `STRIPE_PRICE_SOLO_MONTHLY`
+  - `STRIPE_PRICE_PRO_MONTHLY`
+  - `STRIPE_PRICE_BUSINESS_MONTHLY`
+
+Une fois ces variables ajoutees, le checkout abonnement et le portail client Stripe s'activeront automatiquement.
 
 ## Positionnement reglementaire
 
