@@ -1,10 +1,12 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
 import {
+  demoBillingEvents,
   demoCompany,
   demoComplianceCheck,
   demoCreditNotes,
   demoCustomers,
+  demoEmailDeliveries,
   demoInvoices,
   demoPayments,
   demoPdpConnections,
@@ -16,6 +18,8 @@ import { hashPassword } from "../lib/password";
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.emailDelivery.deleteMany();
+  await prisma.billingEvent.deleteMany();
   await prisma.reminder.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.creditNote.deleteMany();
@@ -101,6 +105,7 @@ async function main() {
 
   const quoteMap = new Map<string, string>();
   const invoiceMap = new Map<string, string>();
+  const reminderMap = new Map<string, string>();
 
   for (const quote of demoQuotes) {
     const created = await prisma.quote.create({
@@ -185,7 +190,7 @@ async function main() {
   }
 
   for (const reminder of demoReminders) {
-    await prisma.reminder.create({
+    const createdReminder = await prisma.reminder.create({
       data: {
         invoiceId: invoiceMap.get(reminder.invoiceId)!,
         type: reminder.type,
@@ -193,6 +198,27 @@ async function main() {
         sentAt: reminder.sentAt ? new Date(reminder.sentAt) : null,
         status: reminder.status,
         subject: reminder.subject
+      }
+    });
+
+    reminderMap.set(reminder.id, createdReminder.id);
+  }
+
+  for (const delivery of demoEmailDeliveries) {
+    await prisma.emailDelivery.create({
+      data: {
+        companyId: company.id,
+        invoiceId: delivery.invoiceId ? invoiceMap.get(delivery.invoiceId)! : null,
+        reminderId: delivery.reminderId ? reminderMap.get(delivery.reminderId)! : null,
+        kind: delivery.kind,
+        status: delivery.status,
+        provider: delivery.provider,
+        recipientEmail: delivery.recipientEmail,
+        recipientName: delivery.recipientName,
+        subject: delivery.subject,
+        externalId: delivery.externalId,
+        errorMessage: delivery.errorMessage,
+        sentAt: delivery.sentAt ? new Date(delivery.sentAt) : null
       }
     });
   }
@@ -230,6 +256,24 @@ async function main() {
       checkedAt: new Date(demoComplianceCheck.checkedAt)
     }
   });
+
+  for (const event of demoBillingEvents) {
+    await prisma.billingEvent.create({
+      data: {
+        companyId: company.id,
+        stripeEventId: event.stripeEventId,
+        type: event.type,
+        state: event.state,
+        summary: event.summary,
+        payload: {
+          source: "seed",
+          type: event.type
+        },
+        receivedAt: new Date(event.receivedAt),
+        processedAt: event.processedAt ? new Date(event.processedAt) : null
+      }
+    });
+  }
 }
 
 main()

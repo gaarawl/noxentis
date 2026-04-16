@@ -1,10 +1,12 @@
 import { calculateDocumentTotals } from "@/lib/domain/calculations";
 import type {
   ActivityItem,
+  BillingEvent,
   Company,
   ComplianceCheck,
   CreditNote,
   Customer,
+  EmailDelivery,
   Invoice,
   Payment,
   PdpConnection,
@@ -376,6 +378,65 @@ export const demoReminders: Reminder[] = [
     scheduledAt: "2026-04-17T09:00:00.000Z",
     status: "SCHEDULED",
     subject: "Rappel amical avant échéance"
+  }
+];
+
+export const demoEmailDeliveries: EmailDelivery[] = [
+  {
+    id: "email_1",
+    companyId: "company_1",
+    invoiceId: "invoice_2",
+    kind: "INVOICE",
+    status: "SENT",
+    provider: "resend",
+    recipientEmail: "julien@atelier-obsidienne.fr",
+    recipientName: "Julien Roche",
+    subject: "Maison Serein Studio - facture FAC-2026-120",
+    externalId: "re_demo_120",
+    sentAt: "2026-04-12T17:08:00.000Z",
+    createdAt: "2026-04-12T17:08:00.000Z",
+    updatedAt: "2026-04-12T17:08:00.000Z"
+  },
+  {
+    id: "email_2",
+    companyId: "company_1",
+    invoiceId: "invoice_3",
+    reminderId: "reminder_1",
+    kind: "REMINDER",
+    status: "PREVIEW",
+    provider: "preview",
+    recipientEmail: "ops@studioalba.fr",
+    recipientName: "Louis Garnier",
+    subject: "Votre facture FAC-2026-121 arrive en relance premium",
+    createdAt: "2026-04-16T08:00:00.000Z",
+    updatedAt: "2026-04-16T08:00:00.000Z"
+  }
+];
+
+export const demoBillingEvents: BillingEvent[] = [
+  {
+    id: "billing_event_1",
+    companyId: "company_1",
+    stripeEventId: "evt_demo_checkout",
+    type: "checkout.session.completed",
+    state: "PROCESSED",
+    summary: "Checkout Stripe termine et abonnement PRO provisionne.",
+    receivedAt: "2026-04-10T09:00:00.000Z",
+    processedAt: "2026-04-10T09:00:01.000Z",
+    createdAt: "2026-04-10T09:00:01.000Z",
+    updatedAt: "2026-04-10T09:00:01.000Z"
+  },
+  {
+    id: "billing_event_2",
+    companyId: "company_1",
+    stripeEventId: "evt_demo_invoice_paid",
+    type: "invoice.paid",
+    state: "PROCESSED",
+    summary: "Renouvellement facture Stripe encaisse avec succes.",
+    receivedAt: "2026-04-15T06:00:00.000Z",
+    processedAt: "2026-04-15T06:00:01.000Z",
+    createdAt: "2026-04-15T06:00:01.000Z",
+    updatedAt: "2026-04-15T06:00:01.000Z"
   }
 ];
 

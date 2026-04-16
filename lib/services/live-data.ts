@@ -8,10 +8,12 @@ import { getCurrentSession } from "@/lib/services/auth-service";
 import { buildComplianceCheck } from "@/lib/services/compliance-engine";
 import {
   demoActivity,
+  demoBillingEvents,
   demoCompany,
   demoComplianceCheck,
   demoCreditNotes,
   demoCustomers,
+  demoEmailDeliveries,
   demoInvoices,
   demoPayments,
   demoPdpConnections,
@@ -29,11 +31,13 @@ import type {
   CreditNote,
   Customer,
   DocumentLine,
+  EmailDelivery,
   Invoice,
   Payment,
   PdpConnection,
   Quote,
   Reminder,
+  BillingEvent,
   SessionUser
 } from "@/lib/domain/models";
 
@@ -42,6 +46,8 @@ type LiveCompanyRecord = Prisma.CompanyGetPayload<{
     owner: true;
     subscription: true;
     customers: true;
+    emailDeliveries: true;
+    billingEvents: true;
     quotes: { include: { lines: true } };
     invoices: {
       include: {
@@ -212,6 +218,41 @@ function mapPdpConnection(connection: LiveCompanyRecord["pdpConnections"][number
     credentialsEncrypted: connection.credentialsEncrypted,
     createdAt: connection.createdAt.toISOString(),
     updatedAt: connection.updatedAt.toISOString()
+  };
+}
+
+function mapEmailDelivery(delivery: LiveCompanyRecord["emailDeliveries"][number]): EmailDelivery {
+  return {
+    id: delivery.id,
+    companyId: delivery.companyId,
+    invoiceId: delivery.invoiceId || undefined,
+    reminderId: delivery.reminderId || undefined,
+    kind: delivery.kind,
+    status: delivery.status,
+    provider: delivery.provider,
+    recipientEmail: delivery.recipientEmail,
+    recipientName: delivery.recipientName || undefined,
+    subject: delivery.subject,
+    externalId: delivery.externalId || undefined,
+    errorMessage: delivery.errorMessage || undefined,
+    sentAt: delivery.sentAt?.toISOString(),
+    createdAt: delivery.createdAt.toISOString(),
+    updatedAt: delivery.updatedAt.toISOString()
+  };
+}
+
+function mapBillingEvent(event: LiveCompanyRecord["billingEvents"][number]): BillingEvent {
+  return {
+    id: event.id,
+    companyId: event.companyId || undefined,
+    stripeEventId: event.stripeEventId,
+    type: event.type,
+    state: event.state,
+    summary: event.summary,
+    receivedAt: event.receivedAt.toISOString(),
+    processedAt: event.processedAt?.toISOString(),
+    createdAt: event.createdAt.toISOString(),
+    updatedAt: event.updatedAt.toISOString()
   };
 }
 
@@ -399,6 +440,8 @@ export const getLiveDataset = cache(async (companyId: string, ownerId: string) =
       owner: true,
       subscription: true,
       customers: { orderBy: { createdAt: "asc" } },
+      emailDeliveries: { orderBy: { createdAt: "desc" } },
+      billingEvents: { orderBy: { createdAt: "desc" } },
       quotes: {
         orderBy: { createdAt: "desc" },
         include: { lines: true }
@@ -428,6 +471,8 @@ export const getLiveDataset = cache(async (companyId: string, ownerId: string) =
   const customers = company.customers.map(mapCustomer);
   const quotes = company.quotes.map(mapQuote);
   const invoices = company.invoices.map(mapInvoice);
+  const emailDeliveries = company.emailDeliveries.map(mapEmailDelivery);
+  const billingEvents = company.billingEvents.map(mapBillingEvent);
   const creditNotes = company.invoices.flatMap((invoice) => invoice.creditNotes.map(mapCreditNote));
   const payments = company.invoices.flatMap((invoice) => invoice.payments.map(mapPayment));
   const reminders = company.invoices.flatMap((invoice) => invoice.reminders.map(mapReminder));
@@ -449,6 +494,8 @@ export const getLiveDataset = cache(async (companyId: string, ownerId: string) =
     customers,
     quotes,
     invoices,
+    emailDeliveries,
+    billingEvents,
     creditNotes,
     payments,
     reminders,
@@ -467,6 +514,8 @@ export async function getDataSource() {
       customers: demoCustomers,
       quotes: demoQuotes,
       invoices: demoInvoices,
+      emailDeliveries: demoEmailDeliveries,
+      billingEvents: demoBillingEvents,
       creditNotes: demoCreditNotes,
       payments: demoPayments,
       reminders: demoReminders,

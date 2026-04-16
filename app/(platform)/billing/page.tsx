@@ -3,11 +3,23 @@ import { ArrowRight, CreditCard, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 import { cn } from "@/lib/cn";
 import { billingPlanCatalog } from "@/lib/config/billing";
+import { formatDate } from "@/lib/domain/calculations";
 import type { BillingStatus, PlanTier } from "@/lib/domain/models";
+import { listBillingEvents } from "@/lib/services/billing-audit-service";
 import { getBillingOverview } from "@/lib/services/billing-service";
+import { getEmailDeliverySnapshot } from "@/lib/services/email-log-service";
 
 function statusVariant(status: BillingStatus) {
   if (status === "ACTIVE") {
@@ -95,9 +107,13 @@ export default async function BillingPage({
   const portal = readString(params.portal);
   const plan = readString(params.plan);
   const sessionId = readString(params.session_id);
-  const billing = await getBillingOverview({
-    checkoutSessionId: checkout === "success" ? sessionId : undefined
-  });
+  const [billing, billingEvents, emailSnapshot] = await Promise.all([
+    getBillingOverview({
+      checkoutSessionId: checkout === "success" ? sessionId : undefined
+    }),
+    listBillingEvents(),
+    getEmailDeliverySnapshot()
+  ]);
   const flash = buildFlashMessage({ checkout, portal, plan });
 
   return (
@@ -325,6 +341,124 @@ export default async function BillingPage({
                 </div>
               );
             })}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Journal Stripe</CardTitle>
+            <CardDescription>
+              Les evenements billing importants sont traces ici une fois le webhook branche.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-hidden">
+            {billingEvents.length === 0 ? (
+              <EmptyState
+                title="Aucun evenement Stripe journalise"
+                description="Le endpoint /api/stripe/webhook est pret. Des que Stripe enverra ses evenements, ce journal se remplira automatiquement."
+              />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Etat</TableHead>
+                    <TableHead>Resume</TableHead>
+                    <TableHead>Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {billingEvents.slice(0, 8).map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell className="text-sm text-white/72">{event.type}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            event.state === "PROCESSED"
+                              ? "success"
+                              : event.state === "FAILED"
+                                ? "danger"
+                                : "outline"
+                          }
+                        >
+                          {event.state}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-white/58">{event.summary}</TableCell>
+                      <TableCell className="text-sm text-white/45">
+                        {formatDate(event.receivedAt)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Journal emails</CardTitle>
+            <CardDescription>
+              Visualisez les envois clients factures et relances, y compris en mode preview.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-sm text-white/45">Envoyes</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{emailSnapshot.sent}</p>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-sm text-white/45">Preview</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{emailSnapshot.preview}</p>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-sm text-white/45">Echecs</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{emailSnapshot.failed}</p>
+              </div>
+            </div>
+
+            {emailSnapshot.deliveries.length === 0 ? (
+              <EmptyState
+                title="Aucun email journalise"
+                description="Les envois de factures et relances apparaitront ici avec leur statut durable."
+              />
+            ) : (
+              <div className="space-y-3">
+                {emailSnapshot.deliveries.slice(0, 6).map((delivery) => (
+                  <div
+                    key={delivery.id}
+                    className="rounded-2xl border border-white/8 bg-white/[0.03] p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-white">
+                          {delivery.invoiceNumber || delivery.subject}
+                        </p>
+                        <p className="text-sm text-white/52">
+                          {delivery.customerName || delivery.recipientEmail}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={
+                          delivery.status === "SENT"
+                            ? "success"
+                            : delivery.status === "FAILED"
+                              ? "danger"
+                              : "warning"
+                        }
+                      >
+                        {delivery.status}
+                      </Badge>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-white/56">{delivery.subject}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -110,6 +110,23 @@ enum BillingStatus {
   CANCELED
 }
 
+enum EmailDeliveryKind {
+  INVOICE
+  REMINDER
+}
+
+enum EmailDeliveryStatus {
+  PREVIEW
+  SENT
+  FAILED
+}
+
+enum BillingEventState {
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -149,6 +166,8 @@ model Company {
   pdpConnections PdpConnection[]
   compliance     ComplianceCheck[]
   subscription   BillingSubscription?
+  emailDeliveries EmailDelivery[]
+  billingEvents   BillingEvent[]
 }
 
 model Customer {
@@ -237,6 +256,7 @@ model Invoice {
   creditNotes         CreditNote[]
   payments            Payment[]
   reminders           Reminder[]
+  emailDeliveries     EmailDelivery[]
 }
 
 model InvoiceLine {
@@ -283,6 +303,7 @@ model Reminder {
   status      ReminderStatus @default(SCHEDULED)
   subject     String
   invoice     Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  emailDeliveries EmailDelivery[]
 }
 
 model PdpConnection {
@@ -323,4 +344,46 @@ model BillingSubscription {
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
   company               Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model EmailDelivery {
+  id             String              @id @default(cuid())
+  companyId      String
+  invoiceId      String?
+  reminderId     String?
+  kind           EmailDeliveryKind
+  status         EmailDeliveryStatus
+  provider       String
+  recipientEmail String
+  recipientName  String?
+  subject        String
+  externalId     String?
+  errorMessage   String?
+  sentAt         DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  company        Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice        Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  reminder       Reminder?           @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, createdAt])
+  @@index([invoiceId, createdAt])
+  @@index([reminderId, createdAt])
+}
+
+model BillingEvent {
+  id            String            @id @default(cuid())
+  companyId     String?
+  stripeEventId String            @unique
+  type          String
+  state         BillingEventState
+  summary       String
+  payload       Json
+  receivedAt    DateTime          @default(now())
+  processedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  company       Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, createdAt])
 }

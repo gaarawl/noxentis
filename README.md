@@ -147,6 +147,20 @@ Le module abonnement fonctionne deja sans compte Stripe :
 
 Une fois ces variables ajoutees, le checkout abonnement et le portail client Stripe s'activeront automatiquement.
 
+Pour finaliser Stripe ensuite :
+
+- creez un webhook Stripe pointant vers `/api/stripe/webhook`
+- renseignez `STRIPE_WEBHOOK_SECRET`
+- laissez Noxentis synchroniser automatiquement :
+  - `checkout.session.completed`
+  - `customer.subscription.created`
+  - `customer.subscription.updated`
+  - `customer.subscription.deleted`
+  - `invoice.paid`
+  - `invoice.payment_failed`
+
+Le projet journalise aussi les envois d'emails facture et relance avec des statuts durables `PREVIEW`, `SENT` et `FAILED`.
+
 ## Positionnement reglementaire
 
 - Noxentis n'est pas une PDP en V1.

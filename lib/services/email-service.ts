@@ -2,6 +2,8 @@ import { formatCurrency } from "@/lib/domain/calculations";
 import type { Company, Customer, Invoice, Reminder, ReminderType } from "@/lib/domain/models";
 import { siteConfig } from "@/lib/config/site";
 import { getExportDocument } from "@/lib/services/document-export-service";
+import { getPrisma } from "@/lib/prisma";
+import { isLiveMode } from "@/lib/runtime";
 
 function getAppUrl() {
   return (
@@ -110,11 +112,51 @@ async function dispatchEmail({
     throw new Error(payload || "Email provider error");
   }
 
+  const payload = (await response.json()) as { id?: string };
+
   return {
     ok: true as const,
     mode: "sent" as const,
-    subject
+    subject,
+    externalId: payload.id
   };
+}
+
+async function recordEmailDelivery(input: {
+  companyId: string;
+  invoiceId?: string;
+  reminderId?: string;
+  kind: "INVOICE" | "REMINDER";
+  status: "PREVIEW" | "SENT" | "FAILED";
+  provider: string;
+  recipientEmail: string;
+  recipientName?: string;
+  subject: string;
+  externalId?: string;
+  errorMessage?: string;
+  sentAt?: Date;
+}) {
+  if (!isLiveMode()) {
+    return;
+  }
+
+  const prisma = getPrisma();
+  await prisma.emailDelivery.create({
+    data: {
+      companyId: input.companyId,
+      invoiceId: input.invoiceId || null,
+      reminderId: input.reminderId || null,
+      kind: input.kind,
+      status: input.status,
+      provider: input.provider,
+      recipientEmail: input.recipientEmail,
+      recipientName: input.recipientName || null,
+      subject: input.subject,
+      externalId: input.externalId || null,
+      errorMessage: input.errorMessage || null,
+      sentAt: input.sentAt || null
+    }
+  });
 }
 
 function buildInvoiceEmailHtml({
@@ -186,18 +228,52 @@ export async function sendInvoiceEmail(invoiceId: string) {
     invoice: exportDocument.document,
     pdfUrl
   });
-  const delivery = await dispatchEmail({
-    to: exportDocument.customer.email,
-    from: getFromAddress(exportDocument.company),
-    subject,
-    html
-  });
+  try {
+    const delivery = await dispatchEmail({
+      to: exportDocument.customer.email,
+      from: getFromAddress(exportDocument.company),
+      subject,
+      html
+    });
 
-  return {
-    ok: true as const,
-    mode: delivery.mode,
-    subject
-  };
+    await recordEmailDelivery({
+      companyId: exportDocument.company.id,
+      invoiceId: exportDocument.document.id,
+      kind: "INVOICE",
+      status: delivery.mode === "sent" ? "SENT" : "PREVIEW",
+      provider: delivery.mode === "sent" ? "resend" : "preview",
+      recipientEmail: exportDocument.customer.email,
+      recipientName: exportDocument.customer.contactName,
+      subject,
+      externalId: delivery.mode === "sent" ? delivery.externalId : undefined,
+      sentAt: delivery.mode === "sent" ? new Date() : undefined
+    });
+
+    return {
+      ok: true as const,
+      mode: delivery.mode,
+      subject
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Email provider error";
+
+    await recordEmailDelivery({
+      companyId: exportDocument.company.id,
+      invoiceId: exportDocument.document.id,
+      kind: "INVOICE",
+      status: "FAILED",
+      provider: "resend",
+      recipientEmail: exportDocument.customer.email,
+      recipientName: exportDocument.customer.contactName,
+      subject,
+      errorMessage: message
+    });
+
+    return {
+      ok: false as const,
+      message: "L'email n'a pas pu etre envoye."
+    };
+  }
 }
 
 export async function sendReminderEmail({
@@ -221,10 +297,45 @@ export async function sendReminderEmail({
     pdfUrl
   });
 
-  return dispatchEmail({
-    to: customer.email,
-    from: getFromAddress(company),
-    subject,
-    html
-  });
+  try {
+    const delivery = await dispatchEmail({
+      to: customer.email,
+      from: getFromAddress(company),
+      subject,
+      html
+    });
+
+    await recordEmailDelivery({
+      companyId: company.id,
+      invoiceId: invoice.id,
+      reminderId: reminder.id,
+      kind: "REMINDER",
+      status: delivery.mode === "sent" ? "SENT" : "PREVIEW",
+      provider: delivery.mode === "sent" ? "resend" : "preview",
+      recipientEmail: customer.email,
+      recipientName: customer.contactName,
+      subject,
+      externalId: delivery.mode === "sent" ? delivery.externalId : undefined,
+      sentAt: delivery.mode === "sent" ? new Date() : undefined
+    });
+
+    return delivery;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Email provider error";
+
+    await recordEmailDelivery({
+      companyId: company.id,
+      invoiceId: invoice.id,
+      reminderId: reminder.id,
+      kind: "REMINDER",
+      status: "FAILED",
+      provider: "resend",
+      recipientEmail: customer.email,
+      recipientName: customer.contactName,
+      subject,
+      errorMessage: message
+    });
+
+    throw error;
+  }
 }

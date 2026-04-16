@@ -74,6 +74,7 @@ export default async function InvoicesPage() {
                   <TableHead>Statut</TableHead>
                   <TableHead>Echeance</TableHead>
                   <TableHead>Reste</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>PDF</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
@@ -116,6 +117,32 @@ export default async function InvoicesPage() {
                     </TableCell>
                     <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                     <TableCell>{formatCurrency(invoice.remainingAmount)}</TableCell>
+                    <TableCell>
+                      {invoice.lastEmailStatus ? (
+                        <div className="space-y-1">
+                          <Badge
+                            variant={
+                              invoice.lastEmailStatus === "SENT"
+                                ? "success"
+                                : invoice.lastEmailStatus === "FAILED"
+                                  ? "danger"
+                                  : "warning"
+                            }
+                          >
+                            {invoice.lastEmailStatus === "SENT"
+                              ? "Envoye"
+                              : invoice.lastEmailStatus === "FAILED"
+                                ? "Echec"
+                                : "Preview"}
+                          </Badge>
+                          <p className="text-xs text-white/45">
+                            {invoice.lastEmailSentAt ? formatDate(invoice.lastEmailSentAt) : "Journalise"}
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-white/35">Aucun envoi</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <DocumentPdfLink kind="invoice" documentId={invoice.id} />
                     </TableCell>

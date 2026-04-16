@@ -24,6 +24,9 @@ export type TransmissionStatus =
 export type ComplianceReadiness = "NOT_READY" | "PARTIALLY_READY" | "READY";
 export type PlanTier = "SOLO" | "PRO" | "BUSINESS";
 export type BillingStatus = "TRIALING" | "ACTIVE" | "PAST_DUE" | "INCOMPLETE" | "CANCELED";
+export type EmailDeliveryKind = "INVOICE" | "REMINDER";
+export type EmailDeliveryStatus = "PREVIEW" | "SENT" | "FAILED";
+export type BillingEventState = "PROCESSED" | "IGNORED" | "FAILED";
 
 export interface Address {
   line1: string;
@@ -216,6 +219,37 @@ export interface BillingSubscription {
   updatedAt: string;
 }
 
+export interface EmailDelivery {
+  id: string;
+  companyId: string;
+  invoiceId?: string;
+  reminderId?: string;
+  kind: EmailDeliveryKind;
+  status: EmailDeliveryStatus;
+  provider: string;
+  recipientEmail: string;
+  recipientName?: string;
+  subject: string;
+  externalId?: string;
+  errorMessage?: string;
+  sentAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BillingEvent {
+  id: string;
+  companyId?: string;
+  stripeEventId: string;
+  type: string;
+  state: BillingEventState;
+  summary: string;
+  receivedAt: string;
+  processedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ActivityItem {
   id: string;
   title: string;
@@ -292,6 +326,8 @@ export interface PdpProvider {
 export interface InvoiceTableRow extends Invoice {
   customerName: string;
   sourceQuoteNumber?: string;
+  lastEmailStatus?: EmailDeliveryStatus;
+  lastEmailSentAt?: string;
 }
 
 export interface ReceivableInvoiceRow {
@@ -335,4 +371,9 @@ export interface ReminderTimelineRow extends Reminder {
   customerName: string;
   amountDue: number;
   dueDate: string;
+}
+
+export interface EmailDeliveryRow extends EmailDelivery {
+  invoiceNumber?: string;
+  customerName?: string;
 }

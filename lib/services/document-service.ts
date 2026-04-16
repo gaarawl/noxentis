@@ -27,7 +27,21 @@ export async function listInvoices(): Promise<InvoiceTableRow[]> {
     ...invoice,
     customerName:
       data.customers.find((customer) => customer.id === invoice.customerId)?.legalName || "Client",
-    sourceQuoteNumber: data.quotes.find((quote) => quote.id === invoice.quoteId)?.number
+    sourceQuoteNumber: data.quotes.find((quote) => quote.id === invoice.quoteId)?.number,
+    lastEmailStatus: data.emailDeliveries
+      .filter((delivery) => delivery.kind === "INVOICE" && delivery.invoiceId === invoice.id)
+      .sort(
+        (left, right) =>
+          new Date(right.sentAt || right.createdAt).getTime() -
+          new Date(left.sentAt || left.createdAt).getTime()
+      )[0]?.status,
+    lastEmailSentAt: data.emailDeliveries
+      .filter((delivery) => delivery.kind === "INVOICE" && delivery.invoiceId === invoice.id)
+      .sort(
+        (left, right) =>
+          new Date(right.sentAt || right.createdAt).getTime() -
+          new Date(left.sentAt || left.createdAt).getTime()
+      )[0]?.sentAt
   }));
 }
 
