@@ -258,10 +258,13 @@ export interface PdpProvider {
 
 export interface InvoiceTableRow extends Invoice {
   customerName: string;
+  sourceQuoteNumber?: string;
 }
 
 export interface QuoteTableRow extends Quote {
   customerName: string;
+  convertedInvoiceNumber?: string;
+  canConvert: boolean;
 }
 
 export interface PaymentTimelineRow extends Payment {

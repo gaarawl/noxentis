@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ConvertQuoteButton } from "@/components/documents/convert-quote-button";
 import { DocumentEditor } from "@/components/documents/document-editor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export default async function QuotesPage() {
                   <TableHead>Emission</TableHead>
                   <TableHead>Expiration</TableHead>
                   <TableHead>Total</TableHead>
+                  <TableHead>Conversion</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -69,6 +71,29 @@ export default async function QuotesPage() {
                     <TableCell>{formatDate(quote.issueDate)}</TableCell>
                     <TableCell>{formatDate(quote.expiryDate)}</TableCell>
                     <TableCell>{formatCurrency(quote.total)}</TableCell>
+                    <TableCell>
+                      {quote.convertedInvoiceNumber ? (
+                        <div className="space-y-2">
+                          <Badge variant="success">Converti</Badge>
+                          <p className="text-xs text-white/45">{quote.convertedInvoiceNumber}</p>
+                          <Link
+                            href="/invoices"
+                            className="text-xs text-white/55 underline-offset-4 transition hover:text-white hover:underline"
+                          >
+                            Voir les factures
+                          </Link>
+                        </div>
+                      ) : quote.status === "DECLINED" || quote.status === "EXPIRED" ? (
+                        <div className="space-y-1">
+                          <Badge variant="danger">Non convertible</Badge>
+                          <p className="text-xs text-white/45">
+                            Statut {quote.status === "DECLINED" ? "refuse" : "expire"}
+                          </p>
+                        </div>
+                      ) : (
+                        <ConvertQuoteButton quoteId={quote.id} disabled={!quote.canConvert} />
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -80,7 +105,7 @@ export default async function QuotesPage() {
       {customers.length === 0 ? (
         <EmptyState
           title="Ajoutez d'abord un client"
-          description="Un devis doit toujours être rattaché à une fiche client. Commencez par créer votre premier client pour débloquer l'éditeur."
+          description="Un devis doit toujours etre rattache a une fiche client. Commencez par creer votre premier client pour debloquer l'editeur."
           action={
             <Link href="/clients">
               <Button>Creer un client</Button>

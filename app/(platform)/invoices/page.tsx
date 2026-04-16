@@ -49,6 +49,7 @@ export default async function InvoicesPage() {
                 <TableRow>
                   <TableHead>Numero</TableHead>
                   <TableHead>Client</TableHead>
+                  <TableHead>Origine</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead>Echeance</TableHead>
                   <TableHead>Reste</TableHead>
@@ -64,6 +65,16 @@ export default async function InvoicesPage() {
                       </div>
                     </TableCell>
                     <TableCell>{invoice.customerName}</TableCell>
+                    <TableCell>
+                      {invoice.sourceQuoteNumber ? (
+                        <div className="space-y-1">
+                          <Badge variant="outline">Depuis devis</Badge>
+                          <p className="text-xs text-white/45">{invoice.sourceQuoteNumber}</p>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-white/35">Facture directe</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-2">
                         <Badge

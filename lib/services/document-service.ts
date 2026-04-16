@@ -14,7 +14,9 @@ export async function listQuotes(): Promise<QuoteTableRow[]> {
   return data.quotes.map((quote) => ({
     ...quote,
     customerName:
-      data.customers.find((customer) => customer.id === quote.customerId)?.legalName || "Client"
+      data.customers.find((customer) => customer.id === quote.customerId)?.legalName || "Client",
+    convertedInvoiceNumber: data.invoices.find((invoice) => invoice.quoteId === quote.id)?.number,
+    canConvert: !data.invoices.some((invoice) => invoice.quoteId === quote.id)
   }));
 }
 
@@ -24,7 +26,8 @@ export async function listInvoices(): Promise<InvoiceTableRow[]> {
   return data.invoices.map((invoice) => ({
     ...invoice,
     customerName:
-      data.customers.find((customer) => customer.id === invoice.customerId)?.legalName || "Client"
+      data.customers.find((customer) => customer.id === invoice.customerId)?.legalName || "Client",
+    sourceQuoteNumber: data.quotes.find((quote) => quote.id === invoice.quoteId)?.number
   }));
 }
 
