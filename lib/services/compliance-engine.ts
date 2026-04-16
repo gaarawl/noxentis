@@ -51,6 +51,7 @@ export function buildRequiredMentions(dataset: ComplianceDataset): MentionCheck[
   const enterpriseCustomers = dataset.customers.filter((customer) => customer.type === "COMPANY");
   const customersMissingSiren = enterpriseCustomers.filter((customer) => !customer.siren);
   const invoicesMissingOperationType = dataset.invoices.filter((invoice) => !invoice.operationType);
+  const hasInvoices = dataset.invoices.length > 0;
   const deliverySensitiveInvoices = dataset.invoices.filter(
     (invoice) => invoice.operationType === "PRODUCT" || invoice.operationType === "MIXED"
   );
@@ -61,19 +62,17 @@ export function buildRequiredMentions(dataset: ComplianceDataset): MentionCheck[
   return [
     {
       label: "SIREN client collecte",
-      ok:
-        enterpriseCustomers.length === 0
-          ? dataset.customers.length > 0
-          : customersMissingSiren.length === 0
+      ok: enterpriseCustomers.length > 0 && customersMissingSiren.length === 0
     },
     {
       label: "Adresse de livraison geree",
       ok:
-        deliverySensitiveInvoices.length === 0 || invoicesMissingDeliveryAddress.length === 0
+        hasInvoices &&
+        (deliverySensitiveInvoices.length === 0 || invoicesMissingDeliveryAddress.length === 0)
     },
     {
       label: "Nature de l'operation renseignee",
-      ok: invoicesMissingOperationType.length === 0
+      ok: hasInvoices && invoicesMissingOperationType.length === 0
     },
     {
       label: "Mention TVA sur les debits parametree",
@@ -86,6 +85,7 @@ export function buildComplianceCheck(dataset: ComplianceDataset): ComplianceChec
   const enterpriseCustomers = dataset.customers.filter((customer) => customer.type === "COMPANY");
   const customersMissingSiren = enterpriseCustomers.filter((customer) => !customer.siren);
   const invoicesMissingOperationType = dataset.invoices.filter((invoice) => !invoice.operationType);
+  const hasInvoices = dataset.invoices.length > 0;
   const deliverySensitiveInvoices = dataset.invoices.filter(
     (invoice) => invoice.operationType === "PRODUCT" || invoice.operationType === "MIXED"
   );
@@ -131,13 +131,14 @@ export function buildComplianceCheck(dataset: ComplianceDataset): ComplianceChec
       missing: "Completer le SIREN des clients entreprises."
     },
     {
-      ok: dataset.invoices.length === 0 || invoicesMissingOperationType.length === 0,
+      ok: hasInvoices && invoicesMissingOperationType.length === 0,
       weight: 10,
       missing: "Renseigner la nature de l'operation sur chaque facture."
     },
     {
       ok:
-        deliverySensitiveInvoices.length === 0 || invoicesMissingDeliveryAddress.length === 0,
+        hasInvoices &&
+        (deliverySensitiveInvoices.length === 0 || invoicesMissingDeliveryAddress.length === 0),
       weight: 8,
       missing: "Documenter l'adresse de livraison lorsqu'elle differe du siege client."
     },

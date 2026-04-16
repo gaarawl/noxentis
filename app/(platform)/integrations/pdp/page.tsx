@@ -9,10 +9,34 @@ export default async function PdpIntegrationsPage() {
   return (
     <div className="space-y-8">
       <SectionHeader
-        eyebrow="Intégrations PDP"
-        title="Couche de connectivité réglementaire"
-        description="Noxentis reste le cockpit business premium ; la transmission et la récupération des statuts passent par des partenaires habilités."
+        eyebrow="Integrations PDP"
+        title="Couche de connectivite reglementaire"
+        description="Noxentis reste le cockpit business premium ; la transmission et la recuperation des statuts passent par des partenaires habilites."
       />
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Etat de connexion</CardTitle>
+          <Badge variant={overview.connected ? "success" : "warning"}>
+            {overview.connected ? "Connectee" : "A connecter"}
+          </Badge>
+        </CardHeader>
+        <CardContent className="text-sm text-white/58">
+          {overview.currentConnection ? (
+            <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-5">
+              <p className="font-medium text-white">{overview.currentConnection.providerName}</p>
+              <p className="mt-2">
+                Statut actuel : <span className="text-white">{overview.currentConnection.status}</span>
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-5">
+              Aucun partenaire PDP n'est encore relie a ce compte. Vous pouvez preparer votre
+              choix ci-dessous puis activer la connexion quand votre flux sera pret.
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr,1.05fr]">
         <Card>
@@ -21,13 +45,24 @@ export default async function PdpIntegrationsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {overview.providers.map((provider) => (
-              <div key={provider.slug} className="rounded-3xl border border-white/8 bg-white/[0.03] p-5">
+              <div
+                key={provider.slug}
+                className="rounded-3xl border border-white/8 bg-white/[0.03] p-5"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-white">{provider.name}</p>
                     <p className="mt-1 text-sm text-white/52">{provider.description}</p>
                   </div>
-                  <Badge variant={provider.status === "ready" ? "success" : provider.status === "pilot" ? "warning" : "outline"}>
+                  <Badge
+                    variant={
+                      provider.status === "ready"
+                        ? "success"
+                        : provider.status === "pilot"
+                          ? "warning"
+                          : "outline"
+                    }
+                  >
                     {provider.status}
                   </Badge>
                 </div>
@@ -49,13 +84,17 @@ export default async function PdpIntegrationsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {overview.statusMapping.map((item) => (
-              <div key={item.internal} className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4">
+              <div
+                key={item.internal}
+                className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4"
+              >
                 <span className="text-sm font-medium text-white">{item.internal}</span>
                 <span className="text-sm text-white/48">{item.partner}</span>
               </div>
             ))}
             <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-white/58">
-              La V1 inclut un mode simulation pour préparer l'expérience, les écrans et le journal de statuts avant branchement API réel.
+              La V1 inclut un mode simulation pour preparer l'experience, les ecrans et le journal
+              de statuts avant branchement API reel.
             </div>
           </CardContent>
         </Card>

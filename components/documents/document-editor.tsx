@@ -5,8 +5,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
-import type { z } from "zod";
 import { Plus, Trash2 } from "lucide-react";
+import type { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +49,7 @@ export function DocumentEditor(props: DocumentEditorProps) {
   });
   const lines = watch("lines");
   const totals = calculateDocumentTotals(lines);
+  const hasCustomers = props.customerOptions.length > 0;
 
   return (
     <form
@@ -66,8 +67,8 @@ export function DocumentEditor(props: DocumentEditorProps) {
           setSaved(
             payload.ok
               ? props.kind === "quote"
-                ? "Devis enregistré."
-                : "Facture enregistrée."
+                ? "Devis enregistre."
+                : "Facture enregistree."
               : payload.message || "Enregistrement impossible."
           );
 
@@ -79,19 +80,26 @@ export function DocumentEditor(props: DocumentEditorProps) {
     >
       <Card>
         <CardHeader>
-          <CardTitle>
-            {props.kind === "quote" ? "Éditeur de devis" : "Éditeur de facture"}
-          </CardTitle>
+          <CardTitle>{props.kind === "quote" ? "Editeur de devis" : "Editeur de facture"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {!hasCustomers ? (
+            <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+              Creez d'abord un client pour emettre un devis ou une facture proprement.
+            </div>
+          ) : null}
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Numéro</Label>
+              <Label>Numero</Label>
               <Input {...register("number")} />
             </div>
             <div className="space-y-2">
               <Label>Client</Label>
-              <Select {...register("customerId")}>
+              <Select {...register("customerId")} disabled={!hasCustomers}>
+                <option value="" disabled>
+                  {hasCustomers ? "Selectionner un client" : "Ajoutez d'abord un client"}
+                </option>
                 {props.customerOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
@@ -100,19 +108,16 @@ export function DocumentEditor(props: DocumentEditorProps) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Date d'émission</Label>
+              <Label>Date d'emission</Label>
               <Input type="date" {...register("issueDate")} />
             </div>
             <div className="space-y-2">
-              <Label>{props.kind === "quote" ? "Date d'expiration" : "Échéance"}</Label>
-              <Input
-                type="date"
-                {...register(props.kind === "quote" ? "expiryDate" : "dueDate")}
-              />
+              <Label>{props.kind === "quote" ? "Date d'expiration" : "Echeance"}</Label>
+              <Input type="date" {...register(props.kind === "quote" ? "expiryDate" : "dueDate")} />
             </div>
             {props.kind === "invoice" ? (
               <div className="space-y-2 md:col-span-2">
-                <Label>Nature de l'opération</Label>
+                <Label>Nature de l'operation</Label>
                 <Select {...register("operationType")}>
                   <option value="SERVICE">Prestations de services</option>
                   <option value="PRODUCT">Livraisons de biens</option>
@@ -131,7 +136,7 @@ export function DocumentEditor(props: DocumentEditorProps) {
                 onClick={() =>
                   append({
                     id: `line-${fields.length + 1}`,
-                    label: "Nouvelle ligne",
+                    label: "",
                     description: "",
                     quantity: 1,
                     unitPrice: 0,
@@ -153,11 +158,14 @@ export function DocumentEditor(props: DocumentEditorProps) {
                   className="grid gap-4 rounded-3xl border border-white/8 bg-white/[0.03] p-4 md:grid-cols-12"
                 >
                   <div className="space-y-2 md:col-span-4">
-                    <Label>Libellé</Label>
-                    <Input {...register(`lines.${index}.label` as const)} />
+                    <Label>Libelle</Label>
+                    <Input
+                      placeholder="Ex. Accompagnement conformite"
+                      {...register(`lines.${index}.label` as const)}
+                    />
                   </div>
                   <div className="space-y-2 md:col-span-3">
-                    <Label>Quantité</Label>
+                    <Label>Quantite</Label>
                     <Input
                       type="number"
                       step="1"
@@ -182,7 +190,10 @@ export function DocumentEditor(props: DocumentEditorProps) {
                   </div>
                   <div className="space-y-2 md:col-span-10">
                     <Label>Description</Label>
-                    <Input {...register(`lines.${index}.description` as const)} />
+                    <Input
+                      placeholder="Precisez l'objet de la ligne si necessaire"
+                      {...register(`lines.${index}.description` as const)}
+                    />
                   </div>
                   <div className="flex items-end justify-end md:col-span-2">
                     <button
@@ -200,16 +211,29 @@ export function DocumentEditor(props: DocumentEditorProps) {
 
           <div className="space-y-2">
             <Label>Notes</Label>
-            <Textarea className="min-h-[120px]" {...register("notes")} />
+            <Textarea
+              className="min-h-[120px]"
+              placeholder={
+                props.kind === "quote"
+                  ? "Ajoutez ici le contexte commercial ou le cadrage de la mission."
+                  : "Ajoutez ici une note utile pour votre client ou votre transmission."
+              }
+              {...register("notes")}
+            />
           </div>
           {props.kind === "quote" ? (
             <div className="space-y-2">
               <Label>Conditions</Label>
-              <Textarea className="min-h-[100px]" {...register("terms")} />
+              <Textarea
+                className="min-h-[100px]"
+                placeholder="Ex. Validite 15 jours. Paiement a 30 jours."
+                {...register("terms")}
+              />
             </div>
           ) : (
             <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-white/58">
-              La facture sera préparée avec ses mentions visuelles premium, puis pourra être transmise via l'adaptateur partenaire PDP si la connexion est active.
+              Le PDF visuel et le flux electronique structure sont traites separement dans
+              Noxentis.
             </div>
           )}
         </CardContent>
@@ -218,7 +242,7 @@ export function DocumentEditor(props: DocumentEditorProps) {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Aperçu financier</CardTitle>
+            <CardTitle>Apercu financier</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between text-sm text-white/60">
@@ -234,9 +258,11 @@ export function DocumentEditor(props: DocumentEditorProps) {
               <span>{formatCurrency(totals.total)}</span>
             </div>
             <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4 text-sm text-white/55">
-              Le PDF visuel et le flux électronique structuré sont traités séparément dans Noxentis.
+              {props.kind === "quote"
+                ? "Le devis reste visuel et commercial jusqu'a sa conversion en facture."
+                : "Le PDF visuel et le flux electronique structure sont traites separement dans Noxentis."}
             </div>
-            <Button className="w-full" type="submit" disabled={isPending}>
+            <Button className="w-full" type="submit" disabled={isPending || !hasCustomers}>
               {props.kind === "quote" ? "Enregistrer le devis" : "Enregistrer la facture"}
             </Button>
             {saved ? <p className="text-sm text-emerald-300">{saved}</p> : null}

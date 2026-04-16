@@ -3,9 +3,14 @@ import { getDataSource } from "@/lib/services/live-data";
 
 export async function getPdpOverview() {
   const data = await getDataSource();
+  const currentConnection = data.pdpConnections.find((connection) => connection.status === "CONNECTED")
+    || data.pdpConnections[0]
+    || null;
 
   return {
     currentConnections: data.pdpConnections,
+    currentConnection,
+    connected: data.pdpConnections.some((connection) => connection.status === "CONNECTED"),
     providers: pdpProviders,
     statusMapping: [
       { internal: "READY", partner: "payload_prepared" },

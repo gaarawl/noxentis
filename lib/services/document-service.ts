@@ -1,10 +1,12 @@
+import { addDays } from "date-fns";
+
 import { calculateDocumentTotals } from "@/lib/domain/calculations";
-import type {
-  DocumentLine,
-  InvoiceTableRow,
-  QuoteTableRow
-} from "@/lib/domain/models";
+import type { DocumentLine, InvoiceTableRow, QuoteTableRow } from "@/lib/domain/models";
 import { getDataSource } from "@/lib/services/live-data";
+
+function formatIsoDate(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
 
 export async function listQuotes(): Promise<QuoteTableRow[]> {
   const data = await getDataSource();
@@ -43,56 +45,25 @@ export async function listCreditNotes() {
 
 export async function getDocumentComposerDefaults(kind: "quote" | "invoice") {
   const data = await getDataSource();
-  const customer =
-    data.customers[0] ||
-    ({
-      id: "",
-      companyId: data.company.id,
-      type: "COMPANY",
-      status: "ONBOARDING",
-      legalName: "Créez d'abord un client",
-      contactName: "",
-      email: "",
-      phone: "",
-      billingAddress: {
-        line1: "",
-        city: "",
-        postalCode: "",
-        country: "France"
-      },
-      notes: "",
-      tags: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    });
-  const baseLines: DocumentLine[] =
-    kind === "quote"
-      ? [
-          {
-            id: "line-temp-1",
-            label: "Pack conseil conformité",
-            description: "Atelier, cadrage mentions et workflow équipe",
-            quantity: 1,
-            unitPrice: 1800,
-            taxRate: 20,
-            discount: 0,
-            total: 1800
-          }
-        ]
-      : [
-          {
-            id: "line-temp-2",
-            label: "Mission conseil premium",
-            description: "Accompagnement sprint 01",
-            quantity: 1,
-            unitPrice: 2200,
-            taxRate: 20,
-            discount: 0,
-            total: 2200
-          }
-        ];
+  const today = new Date();
+  const customer = data.customers[0] || null;
+  const baseLines: DocumentLine[] = [
+    {
+      id: `line-${kind}-1`,
+      label: "",
+      description: "",
+      quantity: 1,
+      unitPrice: 0,
+      taxRate: 20,
+      discount: 0,
+      total: 0
+    }
+  ];
 
   const totals = calculateDocumentTotals(baseLines);
+  const currentYear = today.getFullYear();
+  const nextSequence =
+    kind === "quote" ? String(data.quotes.length + 1).padStart(3, "0") : String(data.invoices.length + 1).padStart(3, "0");
 
   return {
     company: data.company,
@@ -101,7 +72,12 @@ export async function getDocumentComposerDefaults(kind: "quote" | "invoice") {
     totals,
     number:
       kind === "quote"
-        ? `DEV-2026-0${data.quotes.length + 50}`
-        : `FAC-2026-1${data.invoices.length + 30}`
+        ? `DEV-${currentYear}-${nextSequence}`
+        : `FAC-${currentYear}-${nextSequence}`,
+    issueDate: formatIsoDate(today),
+    expiryDate: formatIsoDate(addDays(today, 15)),
+    dueDate: formatIsoDate(addDays(today, 30)),
+    notes: "",
+    terms: ""
   };
 }

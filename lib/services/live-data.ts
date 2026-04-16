@@ -284,7 +284,7 @@ function buildActivity(
   reminders: Reminder[],
   complianceCheck: ComplianceCheck
 ) {
-  const items: ActivityItem[] = [
+  const businessItems: ActivityItem[] = [
     ...payments.map((payment) => ({
       id: `payment-${payment.id}`,
       title: `Paiement enregistré ${payment.reference || ""}`.trim(),
@@ -312,7 +312,15 @@ function buildActivity(
       description: reminder.subject,
       timestamp: reminder.scheduledAt,
       category: "reminder" as const
-    })),
+    }))
+  ];
+
+  if (businessItems.length === 0) {
+    return [];
+  }
+
+  const items: ActivityItem[] = [
+    ...businessItems,
     {
       id: `compliance-${complianceCheck.id}`,
       title: "Checklist conformité recalculée",
