@@ -1,9 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useTransition, type ReactNode } from "react";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   CreditCard,
   FileCheck2,
@@ -16,12 +16,12 @@ import {
   Users
 } from "lucide-react";
 
+import { LogoMark } from "@/components/shell/logo-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { useUiStore } from "@/lib/store/ui-store";
 import type { SessionUser } from "@/lib/domain/models";
-import { LogoMark } from "@/components/shell/logo-mark";
+import { useUiStore } from "@/lib/store/ui-store";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: Gauge },
@@ -31,7 +31,7 @@ const nav = [
   { href: "/credit-notes", label: "Avoirs", icon: RefreshCcw },
   { href: "/payments", label: "Paiements", icon: CreditCard },
   { href: "/reminders", label: "Relances", icon: Receipt },
-  { href: "/compliance", label: "Conformité", icon: FileCheck2 },
+  { href: "/compliance", label: "Conformite", icon: FileCheck2 },
   { href: "/integrations/pdp", label: "PDP", icon: Settings2 },
   { href: "/billing", label: "Billing", icon: CreditCard }
 ];
@@ -43,8 +43,10 @@ export function AppShell({
   children: ReactNode;
   user: SessionUser | null;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
   const { sidebarCollapsed, toggleSidebar } = useUiStore();
+  const [isLoggingOut, startLogoutTransition] = useTransition();
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -100,10 +102,10 @@ export function AppShell({
 
           <div className={cn("space-y-3", sidebarCollapsed && "hidden")}>
             <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-white/35">Conformité</p>
-              <p className="mt-2 text-lg font-semibold text-white">Prêt à 84 %</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-white/35">Conformite</p>
+              <p className="mt-2 text-lg font-semibold text-white">Pret a 84 %</p>
               <p className="mt-1 text-sm text-white/55">
-                Votre cockpit est presque prêt pour la bascule.
+                Votre cockpit est presque pret pour la bascule.
               </p>
             </div>
           </div>
@@ -119,15 +121,31 @@ export function AppShell({
             </div>
 
             <div className="flex items-center gap-3">
-              <Badge variant="outline">PDP partenaire connectée</Badge>
+              <Badge variant="outline">PDP partenaire connectee</Badge>
               <div className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/80">
                 {user?.firstName || "Clara"} {user?.lastName || "Martin"}
               </div>
               <Link href="/settings/account">
                 <Button variant="secondary" size="sm">
-                  Paramètres
+                  Parametres
                 </Button>
               </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={isLoggingOut}
+                onClick={() => {
+                  startLogoutTransition(async () => {
+                    await fetch("/api/auth/logout", {
+                      method: "POST"
+                    });
+                    router.push("/login");
+                    router.refresh();
+                  });
+                }}
+              >
+                {isLoggingOut ? "Deconnexion..." : "Deconnexion"}
+              </Button>
             </div>
           </header>
 

@@ -25,12 +25,12 @@ export function RegisterForm() {
   } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      firstName: "Clara",
-      lastName: "Martin",
-      companyName: "Maison Serein Studio",
-      email: "clara@maisonserein.fr",
-      password: "demo-password",
-      confirmPassword: "demo-password"
+      firstName: "",
+      lastName: "",
+      companyName: "",
+      email: "",
+      password: "",
+      confirmPassword: ""
     }
   });
 

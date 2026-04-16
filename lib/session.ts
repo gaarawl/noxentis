@@ -49,22 +49,8 @@ export async function getSessionUser() {
   return decodeSession(store.get(SESSION_COOKIE)?.value);
 }
 
-export async function createDemoSession(input: {
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  companyName?: string;
-  plan?: PlanTier;
-}) {
+export async function createSession(user: SessionUser) {
   const store = await cookies();
-  const user: SessionUser = {
-    email: input.email,
-    firstName: input.firstName || "Clara",
-    lastName: input.lastName || "Martin",
-    companyName: input.companyName || "Maison Serein Studio",
-    role: "OWNER",
-    plan: input.plan || "PRO"
-  };
 
   store.set(SESSION_COOKIE, encodeSession(user), {
     httpOnly: true,
@@ -75,6 +61,27 @@ export async function createDemoSession(input: {
   });
 
   return user;
+}
+
+export async function createDemoSession(input: {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  plan?: PlanTier;
+}) {
+  const user: SessionUser = {
+    userId: "user_demo",
+    companyId: "company_demo",
+    email: input.email,
+    firstName: input.firstName || "Clara",
+    lastName: input.lastName || "Martin",
+    companyName: input.companyName || "Maison Serein Studio",
+    role: "OWNER",
+    plan: input.plan || "PRO"
+  };
+
+  return createSession(user);
 }
 
 export async function destroySession() {

@@ -11,16 +11,28 @@ import {
   demoQuotes,
   demoReminders
 } from "../lib/data/demo-data";
+import { hashPassword } from "../lib/password";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.reminder.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.creditNote.deleteMany();
+  await prisma.invoiceLine.deleteMany();
+  await prisma.invoice.deleteMany();
+  await prisma.quoteLine.deleteMany();
+  await prisma.quote.deleteMany();
+  await prisma.customer.deleteMany();
+  await prisma.complianceCheck.deleteMany();
+  await prisma.pdpConnection.deleteMany();
+  await prisma.company.deleteMany();
   await prisma.user.deleteMany();
 
   const user = await prisma.user.create({
     data: {
       email: "clara@maisonserein.fr",
-      passwordHash: "demo-hash",
+      passwordHash: hashPassword("demo-password"),
       firstName: "Clara",
       lastName: "Martin",
       role: "OWNER"

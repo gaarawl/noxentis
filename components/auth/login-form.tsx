@@ -25,8 +25,8 @@ export function LoginForm() {
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "clara@maisonserein.fr",
-      password: "demo-password"
+      email: "",
+      password: ""
     }
   });
 

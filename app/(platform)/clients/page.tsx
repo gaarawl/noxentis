@@ -23,9 +23,13 @@ export default async function ClientsPage() {
     <div className="space-y-8">
       <SectionHeader
         eyebrow="Clients"
-        title="CRM léger, clair et premium"
-        description="Coordonnées, SIREN, tags, historique, balance ouverte et données de conformité dans une vue dense mais sereine."
-        action={<Button>Importer des clients</Button>}
+        title="CRM leger, clair et premium"
+        description="Coordonnees, SIREN, tags, historique, balance ouverte et donnees de conformite dans une vue dense mais sereine."
+        action={
+          <Link href="/clients/import">
+            <Button>Importer des clients</Button>
+          </Link>
+        }
       />
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr]">

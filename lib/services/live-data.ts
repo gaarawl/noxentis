@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 
 import { getPrisma } from "@/lib/prisma";
 import { isLiveMode } from "@/lib/runtime";
+import { getCurrentSession } from "@/lib/services/auth-service";
 import {
   demoActivity,
   demoCompany,
@@ -236,6 +237,8 @@ function mapCompliance(
 
 function buildSession(company: LiveCompanyRecord): SessionUser {
   return {
+    userId: company.owner.id,
+    companyId: company.id,
     email: company.owner.email,
     firstName: company.owner.firstName,
     lastName: company.owner.lastName,
@@ -344,14 +347,13 @@ function buildRevenueChart(invoices: Invoice[], payments: Payment[]): ChartPoint
   return Array.from(months.values()).slice(-6);
 }
 
-export const getLiveDataset = cache(async () => {
-  if (!isLiveMode()) {
-    return null;
-  }
-
+export const getLiveDataset = cache(async (companyId: string, ownerId: string) => {
   const prisma = getPrisma();
   const company = await prisma.company.findFirst({
-    orderBy: { createdAt: "asc" },
+    where: {
+      id: companyId,
+      ownerId
+    },
     include: {
       owner: true,
       customers: { orderBy: { createdAt: "asc" } },
@@ -409,26 +411,34 @@ export const getLiveDataset = cache(async () => {
 });
 
 export async function getDataSource() {
-  const liveDataset = await getLiveDataset();
-
-  if (liveDataset) {
-    return liveDataset;
+  if (!isLiveMode()) {
+    return {
+      session: demoSession,
+      company: demoCompany,
+      customers: demoCustomers,
+      quotes: demoQuotes,
+      invoices: demoInvoices,
+      creditNotes: demoCreditNotes,
+      payments: demoPayments,
+      reminders: demoReminders,
+      pdpConnections: demoPdpConnections,
+      complianceCheck: demoComplianceCheck,
+      activity: demoActivity,
+      revenueChart: demoRevenueChart
+    };
   }
 
-  return {
-    session: demoSession,
-    company: demoCompany,
-    customers: demoCustomers,
-    quotes: demoQuotes,
-    invoices: demoInvoices,
-    creditNotes: demoCreditNotes,
-    payments: demoPayments,
-    reminders: demoReminders,
-    pdpConnections: demoPdpConnections,
-    complianceCheck: demoComplianceCheck,
-    activity: demoActivity,
-    revenueChart: demoRevenueChart
-  };
+  const session = await getCurrentSession();
+  if (!session) {
+    throw new Error("AUTHENTICATION_REQUIRED");
+  }
+
+  const liveDataset = await getLiveDataset(session.companyId, session.userId);
+  if (!liveDataset) {
+    throw new Error("COMPANY_CONTEXT_NOT_FOUND");
+  }
+
+  return liveDataset;
 }
 
 export async function getCompanyContext() {
@@ -436,9 +446,17 @@ export async function getCompanyContext() {
     return null;
   }
 
+  const session = await getCurrentSession();
+  if (!session) {
+    return null;
+  }
+
   const prisma = getPrisma();
   return prisma.company.findFirst({
-    orderBy: { createdAt: "asc" },
+    where: {
+      id: session.companyId,
+      ownerId: session.userId
+    },
     include: {
       owner: true
     }

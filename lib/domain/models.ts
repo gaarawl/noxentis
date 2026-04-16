@@ -33,6 +33,8 @@ export interface Address {
 }
 
 export interface SessionUser {
+  userId: string;
+  companyId: string;
   email: string;
   firstName: string;
   lastName: string;

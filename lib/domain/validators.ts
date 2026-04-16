@@ -70,6 +70,10 @@ export const customerSchema = z.object({
   tags: z.string().min(1)
 });
 
+export const customerImportSchema = z.object({
+  content: z.string().min(10, "Collez un CSV avant de lancer l'import.")
+});
+
 export const documentLineSchema = z.object({
   id: z.string(),
   label: z.string().min(2),

@@ -107,6 +107,8 @@ const invoice2Totals = calculateDocumentTotals([...invoice2Lines]);
 const invoice3Totals = calculateDocumentTotals([...invoice3Lines]);
 
 export const demoSession: SessionUser = {
+  userId: "user_1",
+  companyId: "company_1",
   email: "clara@maisonserein.fr",
   firstName: "Clara",
   lastName: "Martin",
