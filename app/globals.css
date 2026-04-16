@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 16% 5%;
+    --foreground: 210 22% 96%;
+    --card: 222 15% 7%;
+    --card-foreground: 210 20% 96%;
+    --border: 220 14% 18%;
+    --input: 220 14% 14%;
+    --ring: 220 20% 90%;
+    --muted: 220 14% 10%;
+    --muted-foreground: 220 10% 60%;
+    --primary: 210 18% 96%;
+    --primary-foreground: 220 18% 8%;
+    --secondary: 220 10% 16%;
+    --secondary-foreground: 210 20% 94%;
+    --accent: 226 18% 21%;
+    --accent-foreground: 210 22% 96%;
+    --success: 152 60% 42%;
+    --success-foreground: 150 40% 96%;
+    --warning: 40 94% 56%;
+    --warning-foreground: 36 100% 9%;
+    --danger: 350 75% 55%;
+    --danger-foreground: 0 0% 100%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Avenir Next", "Segoe UI", sans-serif;
+    background-image:
+      radial-gradient(circle at top left, rgba(103, 120, 152, 0.16), transparent 0 28%),
+      radial-gradient(circle at bottom right, rgba(149, 169, 203, 0.1), transparent 0 24%),
+      linear-gradient(180deg, #090a0c 0%, #060709 100%);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.03em;
+  }
+
+  ::selection {
+    background: rgba(255, 255, 255, 0.18);
+    color: white;
+  }
+}
+
+@layer components {
+  .container-app {
+    @apply mx-auto w-full max-w-[1280px] px-4 lg:px-6;
+  }
+
+  .surface {
+    border-radius: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(24px);
+  }
+
+  .hero-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 80px 80px;
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 1), transparent 90%);
+  }
+}

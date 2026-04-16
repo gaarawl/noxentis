@@ -1,0 +1,285 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum CustomerType {
+  COMPANY
+  INDIVIDUAL
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  APPROVED
+  DECLINED
+  EXPIRED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  SENT
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum InvoiceType {
+  STANDARD
+  DEPOSIT
+  FINAL
+}
+
+enum PaymentMethod {
+  TRANSFER
+  CARD
+  SEPA
+  CASH
+}
+
+enum ReminderType {
+  PRE_DUE
+  DUE_DATE
+  OVERDUE
+}
+
+enum ReminderStatus {
+  SCHEDULED
+  SENT
+  FAILED
+}
+
+enum PdpStatus {
+  NOT_CONNECTED
+  CONNECTED
+  SYNCING
+  ERROR
+}
+
+enum TransmissionStatus {
+  NOT_READY
+  READY
+  QUEUED
+  SENT_TO_PARTNER
+  RECEIVED
+  REJECTED
+}
+
+enum ComplianceReadiness {
+  NOT_READY
+  PARTIALLY_READY
+  READY
+}
+
+enum OperationType {
+  SERVICE
+  PRODUCT
+  MIXED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole  @default(OWNER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  companies    Company[] @relation("CompanyOwner")
+}
+
+model Company {
+  id             String             @id @default(cuid())
+  ownerId        String
+  legalName      String
+  brandName      String
+  siren          String             @db.VarChar(9)
+  vatNumber      String?
+  address        String
+  city           String
+  postalCode     String
+  country        String
+  paymentTerms   String
+  logoUrl        String?
+  email          String?
+  phone          String?
+  activityLabel  String?
+  tvaOnDebits    Boolean            @default(false)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  owner          User               @relation("CompanyOwner", fields: [ownerId], references: [id])
+  customers      Customer[]
+  quotes         Quote[]
+  invoices       Invoice[]
+  creditNotes    CreditNote[]
+  pdpConnections PdpConnection[]
+  compliance     ComplianceCheck[]
+}
+
+model Customer {
+  id              String       @id @default(cuid())
+  companyId       String
+  type            CustomerType
+  legalName       String
+  contactName     String
+  email           String
+  phone           String?
+  siren           String?      @db.VarChar(9)
+  vatNumber       String?
+  billingAddress  Json
+  deliveryAddress Json?
+  notes           String?
+  tags            String[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  quotes          Quote[]
+  invoices        Invoice[]
+}
+
+model Quote {
+  id         String      @id @default(cuid())
+  companyId  String
+  customerId String
+  number     String      @unique
+  status     QuoteStatus @default(DRAFT)
+  issueDate  DateTime
+  expiryDate DateTime
+  subtotal   Decimal     @db.Decimal(10, 2)
+  taxAmount  Decimal     @db.Decimal(10, 2)
+  total      Decimal     @db.Decimal(10, 2)
+  notes      String?
+  terms      String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  lines      QuoteLine[]
+  invoices   Invoice[]
+}
+
+model QuoteLine {
+  id          String   @id @default(cuid())
+  quoteId     String
+  label       String
+  description String?
+  quantity    Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  taxRate     Decimal  @db.Decimal(5, 2)
+  discount    Decimal? @db.Decimal(5, 2)
+  total       Decimal  @db.Decimal(10, 2)
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id                  String              @id @default(cuid())
+  companyId           String
+  customerId          String
+  quoteId             String?
+  number              String              @unique
+  type                InvoiceType         @default(STANDARD)
+  status              InvoiceStatus       @default(DRAFT)
+  issueDate           DateTime
+  dueDate             DateTime
+  subtotal            Decimal             @db.Decimal(10, 2)
+  taxAmount           Decimal             @db.Decimal(10, 2)
+  total               Decimal             @db.Decimal(10, 2)
+  paidAmount          Decimal             @default(0) @db.Decimal(10, 2)
+  remainingAmount     Decimal             @db.Decimal(10, 2)
+  complianceStatus    ComplianceReadiness @default(NOT_READY)
+  transmissionStatus  TransmissionStatus  @default(NOT_READY)
+  pdpStatus           PdpStatus           @default(NOT_CONNECTED)
+  operationType       OperationType       @default(SERVICE)
+  deliveryAddressNote String?
+  notes               String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  company             Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer            Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  quote               Quote?              @relation(fields: [quoteId], references: [id])
+  lines               InvoiceLine[]
+  creditNotes         CreditNote[]
+  payments            Payment[]
+  reminders           Reminder[]
+}
+
+model InvoiceLine {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  label       String
+  description String?
+  quantity    Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  taxRate     Decimal  @db.Decimal(5, 2)
+  discount    Decimal? @db.Decimal(5, 2)
+  total       Decimal  @db.Decimal(10, 2)
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model CreditNote {
+  id        String   @id @default(cuid())
+  invoiceId String
+  companyId String
+  number    String   @unique
+  amount    Decimal  @db.Decimal(10, 2)
+  reason    String
+  createdAt DateTime @default(now())
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  invoiceId String
+  amount    Decimal       @db.Decimal(10, 2)
+  method    PaymentMethod
+  paidAt    DateTime
+  reference String?
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Reminder {
+  id          String         @id @default(cuid())
+  invoiceId   String
+  type        ReminderType
+  scheduledAt DateTime
+  sentAt      DateTime?
+  status      ReminderStatus @default(SCHEDULED)
+  subject     String
+  invoice     Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model PdpConnection {
+  id                   String    @id @default(cuid())
+  companyId            String
+  providerName         String
+  status               PdpStatus @default(NOT_CONNECTED)
+  credentialsEncrypted String
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  company              Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model ComplianceCheck {
+  id            String              @id @default(cuid())
+  companyId     String
+  score         Int
+  status        ComplianceReadiness @default(NOT_READY)
+  missingFields Json
+  warnings      Json
+  checkedAt     DateTime            @default(now())
+  company       Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}

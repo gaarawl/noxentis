@@ -1,0 +1,16 @@
+node_modules
+.next
+.npm-cache
+dist
+release
+coverage
+.DS_Store
+*.log
+*.tsbuildinfo
+.env
+.env.local
+.env.production
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
