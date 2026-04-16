@@ -283,8 +283,23 @@ export interface PaymentTimelineRow extends Payment {
   customerName: string;
 }
 
+export interface RemindableInvoiceRow {
+  id: string;
+  number: string;
+  customerName: string;
+  dueDate: string;
+  total: number;
+  remainingAmount: number;
+  status: InvoiceStatus;
+  recommendedReminderType: ReminderType;
+  lastReminderType?: ReminderType;
+  lastReminderStatus?: ReminderStatus;
+  lastReminderAt?: string;
+}
+
 export interface ReminderTimelineRow extends Reminder {
   invoiceNumber: string;
   customerName: string;
   amountDue: number;
+  dueDate: string;
 }

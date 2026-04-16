@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { DocumentEditor } from "@/components/documents/document-editor";
 import { PayInvoiceButton } from "@/components/payments/pay-invoice-button";
+import { SendReminderButton } from "@/components/reminders/send-reminder-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,23 @@ import {
 import { formatCurrency, formatDate } from "@/lib/domain/calculations";
 import { listCustomers } from "@/lib/services/customer-service";
 import { getDocumentComposerDefaults, listInvoices } from "@/lib/services/document-service";
+
+function getRecommendedReminderType(dueDate: string) {
+  const due = new Date(dueDate);
+  const now = new Date();
+  const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+  const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+  if (dueDay < nowDay) {
+    return "OVERDUE" as const;
+  }
+
+  if (dueDay === nowDay) {
+    return "DUE_DATE" as const;
+  }
+
+  return "PRE_DUE" as const;
+}
 
 export default async function InvoicesPage() {
   const [invoices, defaults, customers] = await Promise.all([
@@ -97,7 +115,13 @@ export default async function InvoicesPage() {
                     <TableCell>{formatCurrency(invoice.remainingAmount)}</TableCell>
                     <TableCell>
                       {invoice.remainingAmount > 0 ? (
-                        <PayInvoiceButton invoiceId={invoice.id} amount={invoice.remainingAmount} />
+                        <div className="flex flex-col items-end gap-2">
+                          <PayInvoiceButton invoiceId={invoice.id} amount={invoice.remainingAmount} />
+                          <SendReminderButton
+                            invoiceId={invoice.id}
+                            type={getRecommendedReminderType(invoice.dueDate)}
+                          />
+                        </div>
                       ) : (
                         <Badge variant="success">Reglee</Badge>
                       )}

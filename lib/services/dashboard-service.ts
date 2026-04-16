@@ -18,6 +18,10 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   const cashIn = currentMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const pending = data.invoices.reduce((sum, invoice) => sum + invoice.remainingAmount, 0);
   const scheduledReminders = data.reminders.filter((reminder) => reminder.status === "SCHEDULED").length;
+  const remindersToSend = data.reminders.filter(
+    (reminder) =>
+      reminder.status === "SCHEDULED" && new Date(reminder.scheduledAt).getTime() <= Date.now()
+  ).length;
   const convertedQuoteIds = new Set(
     data.invoices
       .map((invoice) => invoice.quoteId)
@@ -64,7 +68,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     chart: data.revenueChart,
     recentActivity: data.activity,
     cashExpected: pending,
-    remindersToSend: scheduledReminders,
+    remindersToSend,
     conversionRate
   };
 }

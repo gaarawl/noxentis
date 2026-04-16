@@ -9,6 +9,7 @@ import {
   customerSchema,
   invoiceEditorSchema,
   paymentSchema,
+  reminderSchema,
   quoteEditorSchema
 } from "@/lib/domain/validators";
 import { normalizeEmail } from "@/lib/password";
@@ -183,6 +184,18 @@ function getInvoiceStatusAfterPayment(dueDate: Date, remainingAmount: number, pa
   }
 
   return dueDate.getTime() < Date.now() ? ("OVERDUE" as const) : ("ISSUED" as const);
+}
+
+function getReminderSubject(invoiceNumber: string, type: "PRE_DUE" | "DUE_DATE" | "OVERDUE") {
+  if (type === "PRE_DUE") {
+    return `Rappel amical avant l'echeance de ${invoiceNumber}`;
+  }
+
+  if (type === "DUE_DATE") {
+    return `Votre facture ${invoiceNumber} arrive a echeance aujourd'hui`;
+  }
+
+  return `Relance de paiement pour la facture ${invoiceNumber}`;
 }
 
 export async function saveAccountProfile(payload: unknown) {
@@ -632,6 +645,81 @@ export async function recordInvoicePayment(payload: unknown) {
       amount,
       remainingAmount: nextRemainingAmount,
       status: nextStatus
+    }
+  };
+}
+
+export async function createInvoiceReminder(payload: unknown) {
+  const parsed = reminderSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      message: parsed.error.issues[0]?.message || "Relance invalide."
+    };
+  }
+
+  if (!isLiveMode()) {
+    return { ok: true as const, data: parsed.data };
+  }
+
+  const { prisma, company } = await requireLiveContext();
+  const invoice = await prisma.invoice.findFirst({
+    where: {
+      id: parsed.data.invoiceId,
+      companyId: company.id
+    },
+    select: {
+      id: true,
+      number: true,
+      status: true,
+      remainingAmount: true
+    }
+  });
+
+  if (!invoice) {
+    return {
+      ok: false as const,
+      message: "Facture introuvable."
+    };
+  }
+
+  if (invoice.status === "PAID" || Number(invoice.remainingAmount) <= 0) {
+    return {
+      ok: false as const,
+      message: "Cette facture est deja reglee."
+    };
+  }
+
+  if (invoice.status === "CANCELLED") {
+    return {
+      ok: false as const,
+      message: "Cette facture est annulee et ne peut pas etre relancee."
+    };
+  }
+
+  const scheduledAt = new Date(parsed.data.scheduledAt);
+  const sentAt = parsed.data.mode === "SEND" ? new Date() : null;
+  const reminder = await prisma.reminder.create({
+    data: {
+      invoiceId: invoice.id,
+      type: parsed.data.type,
+      scheduledAt,
+      sentAt,
+      status: parsed.data.mode === "SEND" ? "SENT" : "SCHEDULED",
+      subject: parsed.data.subject?.trim() || getReminderSubject(invoice.number, parsed.data.type)
+    }
+  });
+
+  return {
+    ok: true as const,
+    data: {
+      id: reminder.id,
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.number,
+      status: reminder.status,
+      type: reminder.type,
+      scheduledAt: reminder.scheduledAt.toISOString(),
+      sentAt: reminder.sentAt?.toISOString()
     }
   };
 }

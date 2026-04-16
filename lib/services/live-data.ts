@@ -308,9 +308,12 @@ function buildActivity(
     })),
     ...reminders.map((reminder) => ({
       id: `reminder-${reminder.id}`,
-      title: `Relance ${reminder.type.toLowerCase()}`,
+      title:
+        reminder.status === "SENT"
+          ? `Relance ${reminder.type.toLowerCase()} envoyee`
+          : `Relance ${reminder.type.toLowerCase()} programmee`,
       description: reminder.subject,
-      timestamp: reminder.scheduledAt,
+      timestamp: reminder.sentAt || reminder.scheduledAt,
       category: "reminder" as const
     }))
   ];

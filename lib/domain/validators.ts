@@ -111,3 +111,11 @@ export const paymentSchema = z.object({
   paidAt: z.string().min(1, "La date de paiement est requise."),
   reference: z.string().max(80).optional().or(z.literal(""))
 });
+
+export const reminderSchema = z.object({
+  invoiceId: z.string().min(1, "Selectionnez une facture."),
+  type: z.enum(["PRE_DUE", "DUE_DATE", "OVERDUE"]),
+  mode: z.enum(["SCHEDULE", "SEND"]),
+  scheduledAt: z.string().min(1, "La date de relance est requise."),
+  subject: z.string().max(140).optional().or(z.literal(""))
+});
