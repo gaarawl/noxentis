@@ -7,7 +7,12 @@ import { siteConfig } from "@/lib/config/site";
 
 export const metadata: Metadata = {
   title: `${siteConfig.name} | ${siteConfig.tagline}`,
-  description: siteConfig.description
+  description: siteConfig.description,
+  applicationName: siteConfig.name,
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg"
+  }
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

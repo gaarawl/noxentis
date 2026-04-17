@@ -67,7 +67,7 @@ export function AppShell({
             </div>
             {sidebarCollapsed ? (
               <div className="mx-auto">
-                <LogoMark />
+                <LogoMark compact />
               </div>
             ) : null}
             <button
