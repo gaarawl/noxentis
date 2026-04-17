@@ -4,12 +4,14 @@ import {
   demoBillingEvents,
   demoCompany,
   demoComplianceCheck,
+  demoComplianceAuditLogs,
   demoCreditNotes,
   demoCustomers,
   demoEmailDeliveries,
   demoInvoices,
   demoPayments,
   demoPdpConnections,
+  demoPdpTransmissions,
   demoQuotes,
   demoReminders
 } from "../lib/data/demo-data";
@@ -18,6 +20,8 @@ import { hashPassword } from "../lib/password";
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.complianceAuditLog.deleteMany();
+  await prisma.pdpTransmission.deleteMany();
   await prisma.emailDelivery.deleteMany();
   await prisma.billingEvent.deleteMany();
   await prisma.reminder.deleteMany();
@@ -106,6 +110,7 @@ async function main() {
   const quoteMap = new Map<string, string>();
   const invoiceMap = new Map<string, string>();
   const reminderMap = new Map<string, string>();
+  const pdpConnectionMap = new Map<string, string>();
 
   for (const quote of demoQuotes) {
     const created = await prisma.quote.create({
@@ -236,7 +241,7 @@ async function main() {
   }
 
   for (const connection of demoPdpConnections) {
-    await prisma.pdpConnection.create({
+    const createdConnection = await prisma.pdpConnection.create({
       data: {
         companyId: company.id,
         providerName: connection.providerName,
@@ -244,6 +249,8 @@ async function main() {
         credentialsEncrypted: connection.credentialsEncrypted
       }
     });
+
+    pdpConnectionMap.set(connection.id, createdConnection.id);
   }
 
   await prisma.complianceCheck.create({
@@ -256,6 +263,39 @@ async function main() {
       checkedAt: new Date(demoComplianceCheck.checkedAt)
     }
   });
+
+  for (const transmission of demoPdpTransmissions) {
+    await prisma.pdpTransmission.create({
+      data: {
+        companyId: company.id,
+        invoiceId: invoiceMap.get(transmission.invoiceId)!,
+        pdpConnectionId: transmission.pdpConnectionId
+          ? (pdpConnectionMap.get(transmission.pdpConnectionId) ?? null)
+          : null,
+        providerName: transmission.providerName,
+        internalStatus: transmission.internalStatus,
+        partnerStatus: transmission.partnerStatus,
+        externalReference: transmission.externalReference,
+        payloadSummary: transmission.payloadSummary,
+        message: transmission.message,
+        submittedAt: new Date(transmission.submittedAt)
+      }
+    });
+  }
+
+  for (const log of demoComplianceAuditLogs) {
+    await prisma.complianceAuditLog.create({
+      data: {
+        companyId: company.id,
+        invoiceId: log.invoiceId ? invoiceMap.get(log.invoiceId)! : null,
+        category: log.category,
+        level: log.level,
+        title: log.title,
+        detail: log.detail,
+        createdAt: new Date(log.createdAt)
+      }
+    });
+  }
 
   for (const event of demoBillingEvents) {
     await prisma.billingEvent.create({

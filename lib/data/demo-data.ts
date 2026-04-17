@@ -1,6 +1,7 @@
 import { calculateDocumentTotals } from "@/lib/domain/calculations";
 import type {
   ActivityItem,
+  ComplianceAuditLog,
   BillingEvent,
   Company,
   ComplianceCheck,
@@ -9,6 +10,7 @@ import type {
   EmailDelivery,
   Invoice,
   Payment,
+  PdpTransmission,
   PdpConnection,
   PdpProvider,
   PricingPlan,
@@ -449,6 +451,68 @@ export const demoPdpConnections: PdpConnection[] = [
     credentialsEncrypted: "encrypted-demo-credentials",
     createdAt: "2026-03-05T09:10:00.000Z",
     updatedAt: "2026-04-14T07:55:00.000Z"
+  }
+];
+
+export const demoPdpTransmissions: PdpTransmission[] = [
+  {
+    id: "pdp_tx_1",
+    companyId: "company_1",
+    invoiceId: "invoice_1",
+    pdpConnectionId: "pdp_1",
+    providerName: "Fluxia PDP Partner",
+    internalStatus: "RECEIVED",
+    partnerStatus: "delivered_to_customer_platform",
+    externalReference: "FLX-2026-000118",
+    payloadSummary: "Facture de depot avec operation service et client entreprise complet.",
+    message: "Transmission acceptee puis distribuee au reseau partenaire.",
+    submittedAt: "2026-04-04T09:30:00.000Z",
+    updatedAt: "2026-04-04T09:31:00.000Z"
+  },
+  {
+    id: "pdp_tx_2",
+    companyId: "company_1",
+    invoiceId: "invoice_3",
+    pdpConnectionId: "pdp_1",
+    providerName: "Fluxia PDP Partner",
+    internalStatus: "REJECTED",
+    partnerStatus: "validation_failed",
+    externalReference: "FLX-2026-000121",
+    payloadSummary: "Facture mixte avec adresse de livraison distincte a documenter.",
+    message: "Adresse de livraison non formalisee pour une operation mixte.",
+    submittedAt: "2026-04-15T08:05:00.000Z",
+    updatedAt: "2026-04-15T08:06:00.000Z"
+  }
+];
+
+export const demoComplianceAuditLogs: ComplianceAuditLog[] = [
+  {
+    id: "audit_1",
+    companyId: "company_1",
+    category: "PDP",
+    level: "SUCCESS",
+    title: "Partenaire PDP connecte",
+    detail: "Fluxia PDP Partner est actif pour la simulation et le suivi des statuts.",
+    createdAt: "2026-04-14T07:55:00.000Z"
+  },
+  {
+    id: "audit_2",
+    companyId: "company_1",
+    invoiceId: "invoice_3",
+    category: "TRANSMISSION",
+    level: "WARNING",
+    title: "Transmission rejetee",
+    detail: "La facture FAC-2026-121 reste bloquee tant que l'adresse de livraison n'est pas explicitee.",
+    createdAt: "2026-04-15T08:06:00.000Z"
+  },
+  {
+    id: "audit_3",
+    companyId: "company_1",
+    category: "COMPLIANCE",
+    level: "INFO",
+    title: "Checklist reforme recalculée",
+    detail: "Les points SIREN client, livraison et TVA sur les debits ont ete reevalues.",
+    createdAt: "2026-04-15T16:45:00.000Z"
   }
 ];
 

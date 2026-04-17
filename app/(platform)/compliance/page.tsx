@@ -3,8 +3,14 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
-import { getCompanyCompleteness, getComplianceOverview } from "@/lib/services/compliance-service";
+import {
+  getCompanyCompleteness,
+  getComplianceAuditSnapshot,
+  getComplianceOverview
+} from "@/lib/services/compliance-service";
+import { getPdpOverview } from "@/lib/services/pdp-service";
 
 function hasValue(value?: string | null) {
   return Boolean(value?.trim());
@@ -35,9 +41,11 @@ function readinessVariant(status: "READY" | "PARTIALLY_READY" | "NOT_READY") {
 }
 
 export default async function CompliancePage() {
-  const [overview, completeness] = await Promise.all([
+  const [overview, completeness, auditSnapshot, pdpOverview] = await Promise.all([
     getComplianceOverview(),
-    getCompanyCompleteness()
+    getCompanyCompleteness(),
+    getComplianceAuditSnapshot(),
+    getPdpOverview()
   ]);
 
   const profileReady = [
@@ -239,6 +247,127 @@ export default async function CompliancePage() {
             <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-sm text-white/58">
               Le PDF visuel reste utile pour la lecture client, mais il ne remplace pas un flux
               electronique structure transmis via une plateforme partenaire.
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.05fr,0.95fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Journal d'audit conformite</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-sm text-white/45">Succes</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{auditSnapshot.success}</p>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-sm text-white/45">Alertes</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{auditSnapshot.warning}</p>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-sm text-white/45">Erreurs</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{auditSnapshot.error}</p>
+              </div>
+            </div>
+
+            {auditSnapshot.logs.length === 0 ? (
+              <EmptyState
+                title="Aucun evenement d'audit"
+                description="Les actions de profil, de connexion PDP et de transmission seront journalisees ici."
+              />
+            ) : (
+              <div className="space-y-3">
+                {auditSnapshot.logs.slice(0, 8).map((log) => (
+                  <div
+                    key={log.id}
+                    className="rounded-2xl border border-white/8 bg-white/[0.03] p-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1">
+                        <p className="font-medium text-white">{log.title}</p>
+                        <p className="text-sm text-white/48">
+                          {log.invoiceNumber
+                            ? `${log.invoiceNumber}${log.customerName ? ` - ${log.customerName}` : ""}`
+                            : log.category}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={
+                          log.level === "SUCCESS"
+                            ? "success"
+                            : log.level === "ERROR"
+                              ? "danger"
+                              : log.level === "WARNING"
+                                ? "warning"
+                                : "outline"
+                        }
+                      >
+                        {log.level}
+                      </Badge>
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-white/58">{log.detail}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Etat transmission partenaire</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-medium text-white">Pipeline PDP</p>
+                  <p className="mt-1 text-sm text-white/52">
+                    {pdpOverview.connected
+                      ? "Une connexion partenaire est active pour vos tests de transmission."
+                      : "Aucune connexion partenaire active pour le moment."}
+                  </p>
+                </div>
+                <Badge variant={pdpOverview.connected ? "success" : "warning"}>
+                  {pdpOverview.connected ? "Actif" : "En attente"}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4">
+                <span className="text-sm text-white/65">Factures pretes a transmettre</span>
+                <span className="font-medium text-white">{pdpOverview.stats.ready}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4">
+                <span className="text-sm text-white/65">Transmissions delivrees</span>
+                <span className="font-medium text-white">{pdpOverview.stats.delivered}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4">
+                <span className="text-sm text-white/65">Transmissions bloquees</span>
+                <span className="font-medium text-white">{pdpOverview.stats.blocked + pdpOverview.stats.rejected}</span>
+              </div>
+            </div>
+
+            <div className="rounded-[28px] border border-white/8 bg-white/[0.03] p-5 text-sm text-white/58">
+              {pdpOverview.transmissions[0] ? (
+                <>
+                  Dernier statut observe :{" "}
+                  <span className="font-medium text-white">
+                    {pdpOverview.transmissions[0].invoiceNumber}
+                  </span>{" "}
+                  avec retour{" "}
+                  <span className="font-medium text-white">
+                    {pdpOverview.transmissions[0].partnerStatus}
+                  </span>
+                  .
+                </>
+              ) : (
+                <>Aucune transmission n'a encore ete simulee depuis ce compte.</>
+              )}
             </div>
           </CardContent>
         </Card>

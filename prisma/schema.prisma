@@ -127,6 +127,22 @@ enum BillingEventState {
   FAILED
 }
 
+enum AuditCategory {
+  PROFILE
+  CUSTOMER
+  DOCUMENT
+  TRANSMISSION
+  PDP
+  COMPLIANCE
+}
+
+enum AuditLevel {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -168,6 +184,8 @@ model Company {
   subscription   BillingSubscription?
   emailDeliveries EmailDelivery[]
   billingEvents   BillingEvent[]
+  pdpTransmissions PdpTransmission[]
+  complianceAuditLogs ComplianceAuditLog[]
 }
 
 model Customer {
@@ -257,6 +275,8 @@ model Invoice {
   payments            Payment[]
   reminders           Reminder[]
   emailDeliveries     EmailDelivery[]
+  pdpTransmissions    PdpTransmission[]
+  complianceAuditLogs ComplianceAuditLog[]
 }
 
 model InvoiceLine {
@@ -315,6 +335,7 @@ model PdpConnection {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   company              Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transmissions        PdpTransmission[]
 }
 
 model ComplianceCheck {
@@ -386,4 +407,41 @@ model BillingEvent {
   company       Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([companyId, createdAt])
+}
+
+model PdpTransmission {
+  id              String             @id @default(cuid())
+  companyId       String
+  invoiceId       String
+  pdpConnectionId String?
+  providerName    String
+  internalStatus  TransmissionStatus
+  partnerStatus   String
+  externalReference String?
+  payloadSummary  String
+  message         String?
+  submittedAt     DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  company         Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice         Invoice            @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  pdpConnection   PdpConnection?     @relation(fields: [pdpConnectionId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, submittedAt])
+  @@index([invoiceId, submittedAt])
+}
+
+model ComplianceAuditLog {
+  id          String        @id @default(cuid())
+  companyId   String
+  invoiceId   String?
+  category    AuditCategory
+  level       AuditLevel
+  title       String
+  detail      String
+  createdAt   DateTime      @default(now())
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice     Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, createdAt])
+  @@index([invoiceId, createdAt])
 }

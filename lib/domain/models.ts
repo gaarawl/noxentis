@@ -27,6 +27,14 @@ export type BillingStatus = "TRIALING" | "ACTIVE" | "PAST_DUE" | "INCOMPLETE" | 
 export type EmailDeliveryKind = "INVOICE" | "REMINDER";
 export type EmailDeliveryStatus = "PREVIEW" | "SENT" | "FAILED";
 export type BillingEventState = "PROCESSED" | "IGNORED" | "FAILED";
+export type AuditCategory =
+  | "PROFILE"
+  | "CUSTOMER"
+  | "DOCUMENT"
+  | "TRANSMISSION"
+  | "PDP"
+  | "COMPLIANCE";
+export type AuditLevel = "INFO" | "SUCCESS" | "WARNING" | "ERROR";
 
 export interface Address {
   line1: string;
@@ -250,6 +258,32 @@ export interface BillingEvent {
   updatedAt: string;
 }
 
+export interface PdpTransmission {
+  id: string;
+  companyId: string;
+  invoiceId: string;
+  pdpConnectionId?: string;
+  providerName: string;
+  internalStatus: TransmissionStatus;
+  partnerStatus: string;
+  externalReference?: string;
+  payloadSummary: string;
+  message?: string;
+  submittedAt: string;
+  updatedAt: string;
+}
+
+export interface ComplianceAuditLog {
+  id: string;
+  companyId: string;
+  invoiceId?: string;
+  category: AuditCategory;
+  level: AuditLevel;
+  title: string;
+  detail: string;
+  createdAt: string;
+}
+
 export interface ActivityItem {
   id: string;
   title: string;
@@ -292,6 +326,11 @@ export interface ComplianceOverview {
   timeline: { label: string; date: string; state: "done" | "active" | "upcoming" }[];
 }
 
+export interface ComplianceAuditRow extends ComplianceAuditLog {
+  invoiceNumber?: string;
+  customerName?: string;
+}
+
 export interface PricingPlan {
   name: PlanTier;
   priceMonthly: string;
@@ -328,6 +367,25 @@ export interface InvoiceTableRow extends Invoice {
   sourceQuoteNumber?: string;
   lastEmailStatus?: EmailDeliveryStatus;
   lastEmailSentAt?: string;
+}
+
+export interface PdpTransmissionRow extends PdpTransmission {
+  invoiceNumber: string;
+  customerName: string;
+}
+
+export interface PdpCandidateInvoice {
+  id: string;
+  number: string;
+  customerName: string;
+  total: number;
+  dueDate: string;
+  transmissionStatus: TransmissionStatus;
+  pdpStatus: PdpStatus;
+  readiness: "ready" | "blocked";
+  blockers: string[];
+  lastTransmissionStatus?: TransmissionStatus;
+  lastTransmissionAt?: string;
 }
 
 export interface ReceivableInvoiceRow {
@@ -376,4 +434,23 @@ export interface ReminderTimelineRow extends Reminder {
 export interface EmailDeliveryRow extends EmailDelivery {
   invoiceNumber?: string;
   customerName?: string;
+}
+
+export interface DataSource {
+  session: SessionUser;
+  company: Company;
+  customers: Customer[];
+  quotes: Quote[];
+  invoices: Invoice[];
+  emailDeliveries: EmailDelivery[];
+  billingEvents: BillingEvent[];
+  pdpTransmissions: PdpTransmission[];
+  complianceAuditLogs: ComplianceAuditLog[];
+  creditNotes: CreditNote[];
+  payments: Payment[];
+  reminders: Reminder[];
+  pdpConnections: PdpConnection[];
+  complianceCheck: ComplianceCheck;
+  activity: ActivityItem[];
+  revenueChart: ChartPoint[];
 }

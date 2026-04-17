@@ -11,12 +11,14 @@ import {
   demoBillingEvents,
   demoCompany,
   demoComplianceCheck,
+  demoComplianceAuditLogs,
   demoCreditNotes,
   demoCustomers,
   demoEmailDeliveries,
   demoInvoices,
   demoPayments,
   demoPdpConnections,
+  demoPdpTransmissions,
   demoQuotes,
   demoReminders,
   demoRevenueChart,
@@ -25,19 +27,22 @@ import {
 import type {
   ActivityItem,
   Address,
+  BillingEvent,
   ChartPoint,
   Company,
+  ComplianceAuditLog,
   ComplianceCheck,
   CreditNote,
   Customer,
+  DataSource,
   DocumentLine,
   EmailDelivery,
   Invoice,
   Payment,
+  PdpTransmission,
   PdpConnection,
   Quote,
   Reminder,
-  BillingEvent,
   SessionUser
 } from "@/lib/domain/models";
 
@@ -48,6 +53,8 @@ type LiveCompanyRecord = Prisma.CompanyGetPayload<{
     customers: true;
     emailDeliveries: true;
     billingEvents: true;
+    pdpTransmissions: true;
+    complianceAuditLogs: true;
     quotes: { include: { lines: true } };
     invoices: {
       include: {
@@ -256,6 +263,40 @@ function mapBillingEvent(event: LiveCompanyRecord["billingEvents"][number]): Bil
   };
 }
 
+function mapPdpTransmission(
+  transmission: LiveCompanyRecord["pdpTransmissions"][number]
+): PdpTransmission {
+  return {
+    id: transmission.id,
+    companyId: transmission.companyId,
+    invoiceId: transmission.invoiceId,
+    pdpConnectionId: transmission.pdpConnectionId || undefined,
+    providerName: transmission.providerName,
+    internalStatus: transmission.internalStatus,
+    partnerStatus: transmission.partnerStatus,
+    externalReference: transmission.externalReference || undefined,
+    payloadSummary: transmission.payloadSummary,
+    message: transmission.message || undefined,
+    submittedAt: transmission.submittedAt.toISOString(),
+    updatedAt: transmission.updatedAt.toISOString()
+  };
+}
+
+function mapComplianceAuditLog(
+  log: LiveCompanyRecord["complianceAuditLogs"][number]
+): ComplianceAuditLog {
+  return {
+    id: log.id,
+    companyId: log.companyId,
+    invoiceId: log.invoiceId || undefined,
+    category: log.category,
+    level: log.level,
+    title: log.title,
+    detail: log.detail,
+    createdAt: log.createdAt.toISOString()
+  };
+}
+
 function mapStoredCompliance(
   companyId: string,
   check?: LiveCompanyRecord["compliance"][number]
@@ -429,7 +470,10 @@ function buildRevenueChart(invoices: Invoice[], payments: Payment[]): ChartPoint
   return months.map((item) => monthMap.get(item.key) || item);
 }
 
-export const getLiveDataset = cache(async (companyId: string, ownerId: string) => {
+export const getLiveDataset = cache(async (
+  companyId: string,
+  ownerId: string
+): Promise<DataSource | null> => {
   const prisma = getPrisma();
   const company = await prisma.company.findFirst({
     where: {
@@ -442,6 +486,8 @@ export const getLiveDataset = cache(async (companyId: string, ownerId: string) =
       customers: { orderBy: { createdAt: "asc" } },
       emailDeliveries: { orderBy: { createdAt: "desc" } },
       billingEvents: { orderBy: { createdAt: "desc" } },
+      pdpTransmissions: { orderBy: { submittedAt: "desc" } },
+      complianceAuditLogs: { orderBy: { createdAt: "desc" } },
       quotes: {
         orderBy: { createdAt: "desc" },
         include: { lines: true }
@@ -473,6 +519,8 @@ export const getLiveDataset = cache(async (companyId: string, ownerId: string) =
   const invoices = company.invoices.map(mapInvoice);
   const emailDeliveries = company.emailDeliveries.map(mapEmailDelivery);
   const billingEvents = company.billingEvents.map(mapBillingEvent);
+  const pdpTransmissions = company.pdpTransmissions.map(mapPdpTransmission);
+  const complianceAuditLogs = company.complianceAuditLogs.map(mapComplianceAuditLog);
   const creditNotes = company.invoices.flatMap((invoice) => invoice.creditNotes.map(mapCreditNote));
   const payments = company.invoices.flatMap((invoice) => invoice.payments.map(mapPayment));
   const reminders = company.invoices.flatMap((invoice) => invoice.reminders.map(mapReminder));
@@ -496,6 +544,8 @@ export const getLiveDataset = cache(async (companyId: string, ownerId: string) =
     invoices,
     emailDeliveries,
     billingEvents,
+    pdpTransmissions,
+    complianceAuditLogs,
     creditNotes,
     payments,
     reminders,
@@ -506,7 +556,7 @@ export const getLiveDataset = cache(async (companyId: string, ownerId: string) =
   };
 });
 
-export async function getDataSource() {
+export async function getDataSource(): Promise<DataSource> {
   if (!isLiveMode()) {
     return {
       session: demoSession,
@@ -516,6 +566,8 @@ export async function getDataSource() {
       invoices: demoInvoices,
       emailDeliveries: demoEmailDeliveries,
       billingEvents: demoBillingEvents,
+      pdpTransmissions: demoPdpTransmissions,
+      complianceAuditLogs: demoComplianceAuditLogs,
       creditNotes: demoCreditNotes,
       payments: demoPayments,
       reminders: demoReminders,
